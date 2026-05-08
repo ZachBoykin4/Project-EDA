@@ -77,9 +77,15 @@ conversions = {
 }
 
 state_lookup = {
-    "AL": "Alabama", "FL": "Florida", "GA": "Georgia", "TX": "Texas",
-    "NC": "North Carolina", "SC": "South Carolina", "TN": "Tennessee",
-    "NY": "New York", "CA": "California",
+    "AL": "Alabama",
+    "FL": "Florida",
+    "GA": "Georgia",
+    "TX": "Texas",
+    "NC": "North Carolina",
+    "SC": "South Carolina",
+    "TN": "Tennessee",
+    "NY": "New York",
+    "CA": "California",
 }
 
 # ============================================================
@@ -91,15 +97,15 @@ def clear_screen():
         widget.destroy()
 
 
-def big_button(parent, text, command, width=230, height=72):
+def big_button(parent, text, command, width=320, height=105, font_size=30):
     return ctk.CTkButton(
         parent,
         text=text,
         command=command,
         width=width,
         height=height,
-        font=("Arial", 24, "bold"),
-        corner_radius=16,
+        font=("Arial", font_size, "bold"),
+        corner_radius=22,
     )
 
 
@@ -109,13 +115,19 @@ def show_loading(message="Loading EDA..."):
     frame = ctk.CTkFrame(app, corner_radius=28, fg_color="#090909")
     frame.place(relx=0.5, rely=0.5, anchor="center")
 
-    ctk.CTkLabel(frame, text="EDA", font=("Arial", 72, "bold"), text_color="white").pack(
-        padx=70, pady=(35, 0)
-    )
+    ctk.CTkLabel(
+        frame,
+        text="EDA",
+        font=("Arial", 72, "bold"),
+        text_color="white",
+    ).pack(padx=70, pady=(35, 0))
 
-    ctk.CTkLabel(frame, text=message, font=("Arial", 22, "bold"), text_color="#E00000").pack(
-        pady=(5, 18)
-    )
+    ctk.CTkLabel(
+        frame,
+        text=message,
+        font=("Arial", 22, "bold"),
+        text_color="#E00000",
+    ).pack(pady=(5, 18))
 
     bar = ctk.CTkProgressBar(frame, width=430)
     bar.pack(pady=(0, 35))
@@ -258,7 +270,6 @@ def show_idle_screen():
     idle_frame = ctk.CTkFrame(app, fg_color="#020202")
     idle_frame.pack(fill="both", expand=True)
 
-    # Top branding
     greek_label = ctk.CTkLabel(
         idle_frame,
         text="ΚΑΨ",
@@ -291,7 +302,6 @@ def show_idle_screen():
     )
     diamond_top.place(relx=0.5, rely=0.315, anchor="center")
 
-    # 19 / 11 side elements
     left_19 = ctk.CTkLabel(
         idle_frame,
         text="19",
@@ -324,7 +334,6 @@ def show_idle_screen():
     )
     right_word.place(relx=0.87, rely=0.675, anchor="center")
 
-    # Center clock
     clock_frame = ctk.CTkFrame(idle_frame, fg_color="transparent")
     clock_frame.place(relx=0.5, rely=0.50, anchor="center")
 
@@ -352,7 +361,6 @@ def show_idle_screen():
     )
     date_label.place(relx=0.5, rely=0.685, anchor="center")
 
-    # Open prompt
     divider_left = ctk.CTkFrame(idle_frame, height=2, width=170, fg_color="#AA0000")
     divider_left.place(relx=0.36, rely=0.755, anchor="center")
 
@@ -375,7 +383,6 @@ def show_idle_screen():
     )
     tap_label.place(relx=0.5, rely=0.805, anchor="center")
 
-    # Weather bar
     weather_top = ctk.CTkFrame(idle_frame, height=2, width=610, fg_color="#AA0000")
     weather_top.place(relx=0.5, rely=0.86, anchor="center")
 
@@ -442,39 +449,45 @@ def show_idle_screen():
 def show_main_screen():
     clear_screen()
 
-    header = ctk.CTkFrame(app, fg_color="#080808")
-    header.pack(fill="x", pady=(0, 5))
+    header = ctk.CTkFrame(app, fg_color="#080808", height=78)
+    header.pack(fill="x")
 
-    ctk.CTkLabel(header, text="EDA", font=("Arial", 42, "bold"), text_color="white").pack(
-        pady=(12, 0)
-    )
+    ctk.CTkLabel(
+        header,
+        text="EDA",
+        font=("Arial", 38, "bold"),
+        text_color="white",
+    ).pack(pady=(8, 0))
 
     ctk.CTkLabel(
         header,
         text="Engineering Dashboard Assistant",
-        font=("Arial", 17),
+        font=("Arial", 14),
         text_color="#AAAAAA",
-    ).pack(pady=(0, 10))
+    ).pack()
 
     button_frame = ctk.CTkFrame(app, fg_color="transparent")
-    button_frame.pack(expand=True)
+    button_frame.pack(fill="both", expand=True, padx=18, pady=14)
 
     buttons = [
         ("Units", show_units_screen),
         ("Weather", show_weather_screen),
         ("Timer", show_timer_screen),
         ("Notes", show_notes_screen),
-        ("Clock Mode", show_idle_screen),
+        ("Clock", show_idle_screen),
+        ("Back", show_idle_screen),
         ("Close", app.destroy),
     ]
 
     for i, (text, command) in enumerate(buttons):
-        big_button(button_frame, text, command).grid(
-            row=i // 2,
-            column=i % 2,
-            padx=18,
-            pady=13,
-        )
+        btn = big_button(button_frame, text, command, width=350, height=105, font_size=30)
+        btn.grid(row=i // 2, column=i % 2, padx=14, pady=10, sticky="nsew")
+
+    for col in range(2):
+        button_frame.grid_columnconfigure(col, weight=1)
+
+    for row in range(3):
+        button_frame.grid_rowconfigure(row, weight=1)
 
 
 # ============================================================
@@ -484,37 +497,37 @@ def show_main_screen():
 def show_units_screen():
     clear_screen()
 
-    ctk.CTkLabel(app, text="Unit Converter", font=("Arial", 34, "bold")).pack(pady=(16, 8))
+    ctk.CTkLabel(app, text="Unit Converter", font=("Arial", 34, "bold")).pack(pady=(10, 6))
 
     category_dropdown = ctk.CTkOptionMenu(
         app,
         values=list(conversions.keys()),
-        width=310,
-        height=52,
-        font=("Arial", 22),
+        width=500,
+        height=62,
+        font=("Arial", 28),
     )
-    category_dropdown.pack(pady=6)
+    category_dropdown.pack(pady=5)
 
     conversion_dropdown = ctk.CTkOptionMenu(
         app,
         values=list(conversions["Length"].keys()),
-        width=310,
-        height=52,
-        font=("Arial", 22),
+        width=500,
+        height=62,
+        font=("Arial", 28),
     )
-    conversion_dropdown.pack(pady=6)
+    conversion_dropdown.pack(pady=5)
 
     input_box = ctk.CTkEntry(
         app,
         placeholder_text="Enter value",
-        width=330,
-        height=58,
-        font=("Arial", 26),
+        width=500,
+        height=68,
+        font=("Arial", 30),
     )
-    input_box.pack(pady=12)
+    input_box.pack(pady=8)
 
     result_label = ctk.CTkLabel(app, text="Result will appear here", font=("Arial", 25))
-    result_label.pack(pady=8)
+    result_label.pack(pady=5)
 
     def update_conversion_options(selected_category):
         options = list(conversions[selected_category].keys())
@@ -537,11 +550,11 @@ def show_units_screen():
             result_label.configure(text="Please enter a valid number")
 
     button_frame = ctk.CTkFrame(app, fg_color="transparent")
-    button_frame.pack(pady=10)
+    button_frame.pack(pady=8)
 
-    big_button(button_frame, "Convert", convert_value, 160, 58).grid(row=0, column=0, padx=8)
-    big_button(button_frame, "Clear", lambda: input_box.delete(0, "end"), 160, 58).grid(row=0, column=1, padx=8)
-    big_button(button_frame, "Back", show_main_screen, 160, 58).grid(row=0, column=2, padx=8)
+    big_button(button_frame, "Convert", convert_value, 240, 70, 24).grid(row=0, column=0, padx=7)
+    big_button(button_frame, "Clear", lambda: input_box.delete(0, "end"), 240, 70, 24).grid(row=0, column=1, padx=7)
+    big_button(button_frame, "Back", show_main_screen, 240, 70, 24).grid(row=0, column=2, padx=7)
 
 
 # ============================================================
@@ -551,7 +564,7 @@ def show_units_screen():
 def show_weather_screen():
     clear_screen()
 
-    ctk.CTkLabel(app, text="Weather", font=("Arial", 34, "bold")).pack(pady=(12, 5))
+    ctk.CTkLabel(app, text="Weather", font=("Arial", 34, "bold")).pack(pady=(10, 5))
 
     search_frame = ctk.CTkFrame(app, fg_color="transparent")
     search_frame.pack(pady=5)
@@ -559,13 +572,13 @@ def show_weather_screen():
     city_entry = ctk.CTkEntry(
         search_frame,
         placeholder_text="Auburn, AL",
-        width=330,
-        height=52,
-        font=("Arial", 20),
+        width=430,
+        height=60,
+        font=("Arial", 24),
     )
     city_entry.grid(row=0, column=0, padx=8, pady=8)
 
-    status_label = ctk.CTkLabel(app, text="", font=("Arial", 16))
+    status_label = ctk.CTkLabel(app, text="", font=("Arial", 18))
     status_label.pack(pady=2)
 
     content_frame = ctk.CTkFrame(app)
@@ -579,7 +592,7 @@ def show_weather_screen():
             ctk.CTkLabel(
                 content_frame,
                 text="Search for a city to add weather.",
-                font=("Arial", 22),
+                font=("Arial", 24, "bold"),
             ).pack(expand=True)
         elif len(saved_weather_locations) == 1:
             build_large_weather_view(content_frame, saved_weather_locations[0])
@@ -613,8 +626,8 @@ def show_weather_screen():
 
         threading.Thread(target=worker, daemon=True).start()
 
-    big_button(search_frame, "Add", add_city, 120, 52).grid(row=0, column=1, padx=8, pady=8)
-    big_button(search_frame, "Back", show_main_screen, 120, 52).grid(row=0, column=2, padx=8, pady=8)
+    big_button(search_frame, "Add", add_city, 145, 60, 22).grid(row=0, column=1, padx=8, pady=8)
+    big_button(search_frame, "Back", show_main_screen, 145, 60, 22).grid(row=0, column=2, padx=8, pady=8)
 
     refresh_weather_cards()
 
@@ -634,11 +647,11 @@ def build_weather_card_grid(parent):
             humidity = current["relative_humidity_2m"]
             wind = current["wind_speed_10m"]
 
-            ctk.CTkLabel(card, text=name, font=("Arial", 18, "bold")).pack(pady=(10, 2))
-            ctk.CTkLabel(card, text=f"Local Time: {city_local_time(location)}", font=("Arial", 13)).pack()
-            ctk.CTkLabel(card, text=f"{temp:.0f}°F", font=("Arial", 36, "bold")).pack()
+            ctk.CTkLabel(card, text=name, font=("Arial", 20, "bold")).pack(pady=(10, 2))
+            ctk.CTkLabel(card, text=f"Local Time: {city_local_time(location)}", font=("Arial", 15)).pack()
+            ctk.CTkLabel(card, text=f"{temp:.0f}°F", font=("Arial", 42, "bold")).pack()
             ctk.CTkLabel(card, text=f"Feels {feels:.0f}°F | Humidity {humidity}% | Wind {wind:.0f} mph").pack(pady=4)
-            ctk.CTkButton(card, text="Open", command=lambda loc=location: show_weather_detail_screen(loc)).pack(pady=(6, 10))
+            big_button(card, "Open", lambda loc=location: show_weather_detail_screen(loc), 200, 60, 22).pack(pady=(6, 10))
 
         except Exception:
             ctk.CTkLabel(parent, text="Could not load weather card.").pack(pady=10)
@@ -656,23 +669,23 @@ def build_large_weather_view(parent, location):
         wind = current["wind_speed_10m"]
         precip = current["precipitation"]
 
-        ctk.CTkLabel(parent, text=name, font=("Arial", 24, "bold")).pack(pady=(8, 2))
-        ctk.CTkLabel(parent, text=f"Local Time: {city_local_time(location)}", font=("Arial", 16)).pack()
-        ctk.CTkLabel(parent, text=f"{temp:.0f}°F", font=("Arial", 54, "bold")).pack()
-        ctk.CTkLabel(parent, text=f"Feels Like {feels:.0f}°F", font=("Arial", 18)).pack()
+        ctk.CTkLabel(parent, text=name, font=("Arial", 26, "bold")).pack(pady=(8, 2))
+        ctk.CTkLabel(parent, text=f"Local Time: {city_local_time(location)}", font=("Arial", 18)).pack()
+        ctk.CTkLabel(parent, text=f"{temp:.0f}°F", font=("Arial", 56, "bold")).pack()
+        ctk.CTkLabel(parent, text=f"Feels Like {feels:.0f}°F", font=("Arial", 20)).pack()
         ctk.CTkLabel(
             parent,
             text=f"Humidity: {humidity}%   Wind: {wind:.0f} mph   Rain: {precip:.2f} in",
-            font=("Arial", 15),
+            font=("Arial", 17),
         ).pack(pady=5)
 
-        ctk.CTkButton(
+        big_button(
             parent,
-            text="Open Full Forecast",
-            width=230,
-            height=52,
-            font=("Arial", 18, "bold"),
-            command=lambda: show_weather_detail_screen(location),
+            "Open Forecast",
+            lambda: show_weather_detail_screen(location),
+            310,
+            65,
+            24,
         ).pack(pady=8)
 
     except Exception as error:
@@ -687,18 +700,18 @@ def show_weather_detail_screen(location):
     hourly = data["hourly"]
     daily = data["daily"]
 
-    ctk.CTkLabel(app, text=location_display_name(location), font=("Arial", 28, "bold")).pack(pady=(10, 2))
+    ctk.CTkLabel(app, text=location_display_name(location), font=("Arial", 28, "bold")).pack(pady=(8, 2))
     ctk.CTkLabel(app, text=f"{current['temperature_2m']:.0f}°F | Feels {current['apparent_temperature']:.0f}°F", font=("Arial", 22)).pack()
-    ctk.CTkLabel(app, text=f"Humidity {current['relative_humidity_2m']}% | Wind {current['wind_speed_10m']:.0f} mph", font=("Arial", 15)).pack(pady=(0, 6))
+    ctk.CTkLabel(app, text=f"Humidity {current['relative_humidity_2m']}% | Wind {current['wind_speed_10m']:.0f} mph", font=("Arial", 16)).pack(pady=(0, 4))
 
-    tabview = ctk.CTkTabview(app, width=750, height=300)
-    tabview.pack(pady=5)
+    tabview = ctk.CTkTabview(app, width=750, height=285)
+    tabview.pack(pady=3)
 
     today_tab = tabview.add("Rest of Day")
     week_tab = tabview.add("7-Day")
 
-    hourly_box = ctk.CTkScrollableFrame(today_tab, width=700, height=220)
-    hourly_box.pack(padx=10, pady=10)
+    hourly_box = ctk.CTkScrollableFrame(today_tab, width=700, height=210)
+    hourly_box.pack(padx=10, pady=8)
 
     city_now = datetime.now(ZoneInfo(location["timezone"]))
 
@@ -713,14 +726,14 @@ def show_weather_detail_screen(location):
 
         if hour_dt.date() == city_now.date() and hour_dt.hour >= city_now.hour:
             row_text = f"{hour_dt.strftime('%I %p')}    {temp:.0f}°F    Rain {rain}%    Wind {wind:.0f} mph"
-            ctk.CTkLabel(hourly_box, text=row_text, font=("Arial", 16)).pack(anchor="w", pady=3)
+            ctk.CTkLabel(hourly_box, text=row_text, font=("Arial", 17)).pack(anchor="w", pady=3)
             shown += 1
 
     if shown == 0:
         ctk.CTkLabel(hourly_box, text="No more hourly data for today.").pack(pady=10)
 
-    daily_box = ctk.CTkScrollableFrame(week_tab, width=700, height=220)
-    daily_box.pack(padx=10, pady=10)
+    daily_box = ctk.CTkScrollableFrame(week_tab, width=700, height=210)
+    daily_box.pack(padx=10, pady=8)
 
     for day, high, low, rain in zip(
         daily["time"],
@@ -730,13 +743,14 @@ def show_weather_detail_screen(location):
     ):
         day_name = datetime.fromisoformat(day).strftime("%a %m/%d")
         row_text = f"{day_name}    High {high:.0f}°F    Low {low:.0f}°F    Rain {rain}%"
-        ctk.CTkLabel(daily_box, text=row_text, font=("Arial", 16)).pack(anchor="w", pady=4)
+        ctk.CTkLabel(daily_box, text=row_text, font=("Arial", 17)).pack(anchor="w", pady=4)
 
     bottom_frame = ctk.CTkFrame(app, fg_color="transparent")
-    bottom_frame.pack(pady=6)
+    bottom_frame.pack(pady=5)
 
-    big_button(bottom_frame, "Back", show_weather_screen, 160, 52).grid(row=0, column=0, padx=8)
-    big_button(bottom_frame, "Main Menu", show_main_screen, 180, 52).grid(row=0, column=1, padx=8)
+    big_button(bottom_frame, "Back", show_weather_screen, 230, 60, 22).grid(row=0, column=0, padx=8)
+    big_button(bottom_frame, "Main Menu", show_main_screen, 230, 60, 22).grid(row=0, column=1, padx=8)
+    big_button(bottom_frame, "Clock", show_idle_screen, 230, 60, 22).grid(row=0, column=2, padx=8)
 
 
 # ============================================================
@@ -749,19 +763,19 @@ def show_timer_screen():
     timer_running = {"active": False}
     remaining_time = {"seconds": 0}
 
-    ctk.CTkLabel(app, text="Timer", font=("Arial", 36, "bold")).pack(pady=(15, 5))
+    ctk.CTkLabel(app, text="Timer", font=("Arial", 36, "bold")).pack(pady=(10, 4))
 
     input_frame = ctk.CTkFrame(app, fg_color="transparent")
-    input_frame.pack(pady=8)
+    input_frame.pack(pady=6)
 
-    minutes_entry = ctk.CTkEntry(input_frame, placeholder_text="Minutes", width=170, height=56, font=("Arial", 24))
-    minutes_entry.grid(row=0, column=0, padx=10, pady=10)
+    minutes_entry = ctk.CTkEntry(input_frame, placeholder_text="Minutes", width=230, height=65, font=("Arial", 28))
+    minutes_entry.grid(row=0, column=0, padx=10, pady=8)
 
-    seconds_entry = ctk.CTkEntry(input_frame, placeholder_text="Seconds", width=170, height=56, font=("Arial", 24))
-    seconds_entry.grid(row=0, column=1, padx=10, pady=10)
+    seconds_entry = ctk.CTkEntry(input_frame, placeholder_text="Seconds", width=230, height=65, font=("Arial", 28))
+    seconds_entry.grid(row=0, column=1, padx=10, pady=8)
 
-    timer_label = ctk.CTkLabel(app, text="00:00", font=("Arial", 86, "bold"))
-    timer_label.pack(pady=8)
+    timer_label = ctk.CTkLabel(app, text="00:00", font=("Arial", 90, "bold"))
+    timer_label.pack(pady=4)
 
     status_label = ctk.CTkLabel(app, text="Ready", font=("Arial", 20))
     status_label.pack(pady=2)
@@ -821,13 +835,17 @@ def show_timer_screen():
         status_label.configure(text="Ready")
 
     button_frame = ctk.CTkFrame(app, fg_color="transparent")
-    button_frame.pack(pady=8)
+    button_frame.pack(pady=6)
 
-    big_button(button_frame, "Start", start_timer, 140, 58).grid(row=0, column=0, padx=8)
-    big_button(button_frame, "Pause", pause_timer, 140, 58).grid(row=0, column=1, padx=8)
-    big_button(button_frame, "Reset", reset_timer, 140, 58).grid(row=0, column=2, padx=8)
+    big_button(button_frame, "Start", start_timer, 180, 65, 24).grid(row=0, column=0, padx=8)
+    big_button(button_frame, "Pause", pause_timer, 180, 65, 24).grid(row=0, column=1, padx=8)
+    big_button(button_frame, "Reset", reset_timer, 180, 65, 24).grid(row=0, column=2, padx=8)
 
-    big_button(app, "Back", show_main_screen, 180, 55).pack(pady=8)
+    bottom_frame = ctk.CTkFrame(app, fg_color="transparent")
+    bottom_frame.pack(pady=5)
+
+    big_button(bottom_frame, "Back", show_main_screen, 230, 60, 22).grid(row=0, column=0, padx=8)
+    big_button(bottom_frame, "Clock", show_idle_screen, 230, 60, 22).grid(row=0, column=1, padx=8)
 
 
 # ============================================================
@@ -837,10 +855,10 @@ def show_timer_screen():
 def show_notes_screen():
     clear_screen()
 
-    ctk.CTkLabel(app, text="Quick Notes", font=("Arial", 36, "bold")).pack(pady=(14, 6))
+    ctk.CTkLabel(app, text="Quick Notes", font=("Arial", 36, "bold")).pack(pady=(10, 5))
 
-    notes_box = ctk.CTkTextbox(app, width=700, height=285, font=("Arial", 21))
-    notes_box.pack(pady=8)
+    notes_box = ctk.CTkTextbox(app, width=720, height=270, font=("Arial", 23))
+    notes_box.pack(pady=6)
 
     try:
         with open("notes.txt", "r") as file:
@@ -857,10 +875,11 @@ def show_notes_screen():
         status_label.configure(text="Notes saved")
 
     button_frame = ctk.CTkFrame(app, fg_color="transparent")
-    button_frame.pack(pady=6)
+    button_frame.pack(pady=5)
 
-    big_button(button_frame, "Save", save_notes, 160, 55).grid(row=0, column=0, padx=8)
-    big_button(button_frame, "Back", show_main_screen, 160, 55).grid(row=0, column=1, padx=8)
+    big_button(button_frame, "Save", save_notes, 220, 65, 24).grid(row=0, column=0, padx=8)
+    big_button(button_frame, "Back", show_main_screen, 220, 65, 24).grid(row=0, column=1, padx=8)
+    big_button(button_frame, "Clock", show_idle_screen, 220, 65, 24).grid(row=0, column=2, padx=8)
 
 
 # ============================================================
