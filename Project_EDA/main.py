@@ -6,20 +6,26 @@ import threading
 
 APP_WIDTH = 800
 APP_HEIGHT = 480
-FULLSCREEN = True
 DEFAULT_WEATHER_CITY = "Auburn, AL"
+
+DIM_AFTER_MS = 5 * 60 * 1000
+is_dimmed = {"value": False}
+dim_job = {"id": None}
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 app = ctk.CTk()
-app.geometry(f"{APP_WIDTH}x{APP_HEIGHT}")
+app.geometry(f"{APP_WIDTH}x{APP_HEIGHT}+0+0")
 app.title("EDA - Engineering Dashboard Assistant")
 
-if FULLSCREEN:
-    app.attributes("-fullscreen", True)
+# Hard fullscreen / kiosk mode
+app.overrideredirect(True)
+app.attributes("-fullscreen", True)
+app.attributes("-topmost", True)
+app.focus_force()
 
-app.bind("<Escape>", lambda e: app.attributes("-fullscreen", False))
+app.bind("<Escape>", lambda e: app.destroy())
 
 saved_weather_locations = []
 idle_weather_data = {
@@ -83,6 +89,23 @@ state_lookup = {
 def clear_screen():
     for widget in app.winfo_children():
         widget.destroy()
+
+
+def reset_dim_timer():
+    is_dimmed["value"] = False
+
+    if dim_job["id"] is not None:
+        try:
+            app.after_cancel(dim_job["id"])
+        except Exception:
+            pass
+
+    dim_job["id"] = app.after(DIM_AFTER_MS, dim_idle_screen)
+
+
+def dim_idle_screen():
+    is_dimmed["value"] = True
+    show_idle_screen(dimmed=True)
 
 
 def nav_button(parent, text, command):
@@ -219,59 +242,70 @@ def load_idle_weather():
     threading.Thread(target=worker, daemon=True).start()
 
 
-def show_idle_screen():
+def show_idle_screen(dimmed=False):
     clear_screen()
 
-    idle_frame = ctk.CTkFrame(app, fg_color="#020202")
+    if dimmed:
+        bg = "#000000"
+        white = "#404040"
+        red = "#230000"
+        side_red = "#170000"
+    else:
+        bg = "#020202"
+        white = "#FFFFFF"
+        red = "#E00000"
+        side_red = "#C00000"
+
+    idle_frame = ctk.CTkFrame(app, fg_color=bg)
     idle_frame.pack(fill="both", expand=True)
 
     ctk.CTkLabel(
         idle_frame,
         text="ΚΑΨ",
         font=("Times New Roman", 96, "bold"),
-        text_color="#E00000",
+        text_color=red,
     ).place(relx=0.5, rely=0.095, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
         text="KAPPA ALPHA PSI",
         font=("Times New Roman", 25, "bold"),
-        text_color="#FFFFFF",
+        text_color=white,
     ).place(relx=0.5, rely=0.205, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
         text="FRATERNITY, INC.",
         font=("Arial", 15, "bold"),
-        text_color="#E00000",
+        text_color=red,
     ).place(relx=0.5, rely=0.265, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
         text="19",
         font=("Times New Roman", 92, "bold"),
-        text_color="#C00000",
+        text_color=side_red,
     ).place(relx=0.13, rely=0.52, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
         text="N I N E T E E N",
         font=("Arial", 15, "bold"),
-        text_color="#FFFFFF",
+        text_color=white,
     ).place(relx=0.13, rely=0.675, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
         text="11",
         font=("Times New Roman", 92, "bold"),
-        text_color="#C00000",
+        text_color=side_red,
     ).place(relx=0.87, rely=0.52, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
         text="E L E V E N",
         font=("Arial", 15, "bold"),
-        text_color="#FFFFFF",
+        text_color=white,
     ).place(relx=0.87, rely=0.675, anchor="center")
 
     clock_frame = ctk.CTkFrame(idle_frame, fg_color="transparent")
@@ -281,7 +315,7 @@ def show_idle_screen():
         clock_frame,
         text="",
         font=("Arial", 138, "bold"),
-        text_color="#FFFFFF",
+        text_color=white,
     )
     time_label.grid(row=0, column=0, padx=(0, 8))
 
@@ -289,7 +323,7 @@ def show_idle_screen():
         clock_frame,
         text="",
         font=("Arial", 42, "bold"),
-        text_color="#FFFFFF",
+        text_color=white,
     )
     pm_label.grid(row=0, column=1, sticky="s", pady=(0, 18))
 
@@ -297,25 +331,25 @@ def show_idle_screen():
         idle_frame,
         text="",
         font=("Arial", 25, "bold"),
-        text_color="#E00000",
+        text_color=red,
     )
     date_label.place(relx=0.5, rely=0.685, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
-        text="TAP ANYWHERE TO OPEN EDA",
+        text="TAP ANYWHERE TO OPEN EDA" if not dimmed else "TAP TO WAKE",
         font=("Arial", 17, "bold"),
-        text_color="#FFFFFF",
+        text_color=white,
     ).place(relx=0.5, rely=0.805, anchor="center")
 
     weather_frame = ctk.CTkFrame(idle_frame, fg_color="transparent")
     weather_frame.place(relx=0.5, rely=0.902, anchor="center")
 
-    city_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color="#FFFFFF")
-    temp_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 25, "bold"), text_color="#FFFFFF")
-    feels_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color="#FFFFFF")
-    hum_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color="#FFFFFF")
-    wind_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color="#FFFFFF")
+    city_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color=white)
+    temp_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 25, "bold"), text_color=white)
+    feels_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color=white)
+    hum_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color=white)
+    wind_label = ctk.CTkLabel(weather_frame, text="", font=("Arial", 17, "bold"), text_color=white)
 
     city_label.grid(row=0, column=0, padx=10)
     temp_label.grid(row=0, column=1, padx=10)
@@ -327,7 +361,7 @@ def show_idle_screen():
         idle_frame,
         text="ACHIEVEMENT IN EVERY FIELD OF HUMAN ENDEAVOR",
         font=("Arial", 11, "bold"),
-        text_color="#E00000",
+        text_color=red,
     ).place(relx=0.5, rely=0.965, anchor="center")
 
     def update_idle_clock():
@@ -343,15 +377,37 @@ def show_idle_screen():
             wind_label.configure(text=idle_weather_data["wind"])
             app.after(1000, update_idle_clock)
 
-    idle_frame.bind("<Button-1>", lambda event: show_main_screen())
+    def wake_or_open(event=None):
+        if is_dimmed["value"]:
+            is_dimmed["value"] = False
+            show_idle_screen(dimmed=False)
+            reset_dim_timer()
+        else:
+            if dim_job["id"] is not None:
+                try:
+                    app.after_cancel(dim_job["id"])
+                except Exception:
+                    pass
+            show_main_screen()
+
+    idle_frame.bind("<Button-1>", wake_or_open)
     for child in idle_frame.winfo_children():
-        child.bind("<Button-1>", lambda event: show_main_screen())
+        child.bind("<Button-1>", wake_or_open)
 
     update_idle_clock()
+
+    if not dimmed:
+        reset_dim_timer()
 
 
 def show_main_screen():
     clear_screen()
+
+    if dim_job["id"] is not None:
+        try:
+            app.after_cancel(dim_job["id"])
+        except Exception:
+            pass
 
     header = ctk.CTkFrame(app, fg_color="#080808", height=70)
     header.pack(fill="x")
