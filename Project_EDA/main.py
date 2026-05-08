@@ -24,8 +24,6 @@ app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
 def force_fullscreen():
     app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
     app.attributes("-fullscreen", True)
-    app.lift()
-    app.focus_force()
 
 
 app.after(200, force_fullscreen)
