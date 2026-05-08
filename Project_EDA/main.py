@@ -874,7 +874,11 @@ def show_notes_screen():
     frame = ctk.CTkFrame(app, fg_color="transparent")
     frame.pack(fill="both", expand=True, padx=8, pady=8)
 
-    ctk.CTkLabel(frame, text="Quick Notes", font=("Arial", 32, "bold")).grid(row=0, column=0, columnspan=10, sticky="nsew")
+    ctk.CTkLabel(
+        frame,
+        text="Quick Notes",
+        font=("Arial", 30, "bold")
+    ).grid(row=0, column=0, columnspan=10, sticky="nsew", pady=(0, 4))
 
     notes_box = tk.Text(
         frame,
@@ -893,7 +897,7 @@ def show_notes_screen():
     except FileNotFoundError:
         notes_box.insert("1.0", "Project EDA notes...\n")
 
-    status_label = ctk.CTkLabel(frame, text="", font=("Arial", 16, "bold"))
+    status_label = ctk.CTkLabel(frame, text="", font=("Arial", 14, "bold"))
     status_label.grid(row=2, column=0, columnspan=10, sticky="nsew")
 
     def insert_text(text):
@@ -904,7 +908,7 @@ def show_notes_screen():
         timestamp = datetime.now().strftime("%Y-%m-%d %I:%M %p")
 
         templates = {
-            "Timestamp": f"\n[{timestamp}] ",
+            "Time": f"\n[{timestamp}] ",
             "Project": f"\n[{timestamp}] PROJECT UPDATE:\n- ",
             "To-Do": f"\n[{timestamp}] TO-DO:\n- ",
             "Idea": f"\n[{timestamp}] IDEA:\n- ",
@@ -912,6 +916,129 @@ def show_notes_screen():
         }
 
         insert_text(templates[kind])
+
+    def save_notes():
+        with open("notes.txt", "w") as file:
+            file.write(notes_box.get("1.0", "end"))
+        status_label.configure(text="Notes saved")
+
+    def clear_notes():
+        notes_box.delete("1.0", "end")
+        status_label.configure(text="Notes cleared")
+
+    def delete_char():
+        try:
+            notes_box.delete("end-2c", "end-1c")
+        except Exception:
+            pass
+
+    # -----------------------------
+    # Quick Note Buttons
+    # -----------------------------
+    quick_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    quick_frame.grid(row=3, column=0, columnspan=10, sticky="nsew", pady=2)
+
+    quick_buttons = [
+        ("Time", lambda: quick_note("Time")),
+        ("Project", lambda: quick_note("Project")),
+        ("To-Do", lambda: quick_note("To-Do")),
+        ("Idea", lambda: quick_note("Idea")),
+        ("Bug", lambda: quick_note("Bug")),
+        ("Save", save_notes),
+        ("Clear", clear_notes),
+        ("Back", show_main_screen),
+        ("Clock", show_idle_screen),
+    ]
+
+    for i, (text, cmd) in enumerate(quick_buttons):
+        keypad_button(quick_frame, text, cmd, size=15).grid(
+            row=i // 5,
+            column=i % 5,
+            sticky="nsew",
+            padx=3,
+            pady=3
+        )
+
+    for r in range(2):
+        quick_frame.grid_rowconfigure(r, weight=1)
+
+    for c in range(5):
+        quick_frame.grid_columnconfigure(c, weight=1)
+
+    # -----------------------------
+    # Mini Keyboard
+    # -----------------------------
+    keyboard_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    keyboard_frame.grid(row=4, column=0, columnspan=10, sticky="nsew", pady=(2, 0))
+
+    keyboard_rows = [
+        list("QWERTYUIOP"),
+        list("ASDFGHJKL"),
+        list("ZXCVBNM"),
+    ]
+
+    for r, letters in enumerate(keyboard_rows):
+        offset = 0
+        if r == 1:
+            offset = 0
+        elif r == 2:
+            offset = 1
+
+        for c, letter in enumerate(letters):
+            keypad_button(
+                keyboard_frame,
+                letter,
+                lambda l=letter: insert_text(l.lower()),
+                size=16
+            ).grid(
+                row=r,
+                column=c + offset,
+                sticky="nsew",
+                padx=3,
+                pady=3
+            )
+
+    keypad_button(keyboard_frame, "SPACE", lambda: insert_text(" "), size=16).grid(
+        row=3, column=0, columnspan=3, sticky="nsew", padx=3, pady=3
+    )
+
+    keypad_button(keyboard_frame, "ENTER", lambda: insert_text("\n"), size=16).grid(
+        row=3, column=3, columnspan=2, sticky="nsew", padx=3, pady=3
+    )
+
+    keypad_button(keyboard_frame, "⌫", delete_char, size=16).grid(
+        row=3, column=5, columnspan=2, sticky="nsew", padx=3, pady=3
+    )
+
+    keypad_button(keyboard_frame, ".", lambda: insert_text("."), size=16).grid(
+        row=3, column=7, sticky="nsew", padx=3, pady=3
+    )
+
+    keypad_button(keyboard_frame, "-", lambda: insert_text("-"), size=16).grid(
+        row=3, column=8, sticky="nsew", padx=3, pady=3
+    )
+
+    keypad_button(keyboard_frame, ",", lambda: insert_text(","), size=16).grid(
+        row=3, column=9, sticky="nsew", padx=3, pady=3
+    )
+
+    for r in range(4):
+        keyboard_frame.grid_rowconfigure(r, weight=1)
+
+    for c in range(10):
+        keyboard_frame.grid_columnconfigure(c, weight=1)
+
+    # -----------------------------
+    # Screen Layout Weights
+    # -----------------------------
+    frame.grid_rowconfigure(0, weight=1)
+    frame.grid_rowconfigure(1, weight=7)
+    frame.grid_rowconfigure(2, weight=1)
+    frame.grid_rowconfigure(3, weight=2)
+    frame.grid_rowconfigure(4, weight=4)
+
+    for c in range(10):
+        frame.grid_columnconfigure(c, weight=1)
 
     def save_notes():
         with open("notes.txt", "w") as file:
