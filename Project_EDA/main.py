@@ -4,28 +4,34 @@ from zoneinfo import ZoneInfo
 import requests
 import threading
 
-APP_WIDTH = 800
-APP_HEIGHT = 480
-DEFAULT_WEATHER_CITY = "Auburn, AL"
+# ============================================================
+# EDA - Engineering Dashboard Assistant
+# ============================================================
 
+DEFAULT_WEATHER_CITY = "Auburn, AL"
 DIM_AFTER_MS = 5 * 60 * 1000
-is_dimmed = {"value": False}
-dim_job = {"id": None}
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 app = ctk.CTk()
-app.geometry(f"{APP_WIDTH}x{APP_HEIGHT}+0+0")
 app.title("EDA - Engineering Dashboard Assistant")
 
-# Hard fullscreen / kiosk mode
-app.overrideredirect(True)
-app.attributes("-fullscreen", True)
-app.attributes("-topmost", True)
-app.focus_force()
+SCREEN_W = app.winfo_screenwidth()
+SCREEN_H = app.winfo_screenheight()
 
+app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
+app.minsize(SCREEN_W, SCREEN_H)
+
+def force_fullscreen():
+    app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
+    app.attributes("-fullscreen", True)
+    app.lift()
+    app.focus_force()
+
+app.after(200, force_fullscreen)
 app.bind("<Escape>", lambda e: app.destroy())
+app.bind("<F11>", lambda e: force_fullscreen())
 
 saved_weather_locations = []
 idle_weather_data = {
@@ -35,6 +41,14 @@ idle_weather_data = {
     "humidity": "HUM --%",
     "wind": "WIND -- MPH",
 }
+
+is_dimmed = {"value": False}
+dim_job = {"id": None}
+active_screen = {"name": "clock"}
+
+# ============================================================
+# Data
+# ============================================================
 
 conversions = {
     "Length": {
@@ -74,47 +88,49 @@ conversions = {
 }
 
 state_lookup = {
-    "AL": "Alabama",
-    "FL": "Florida",
-    "GA": "Georgia",
-    "TX": "Texas",
-    "NC": "North Carolina",
-    "SC": "South Carolina",
-    "TN": "Tennessee",
-    "NY": "New York",
-    "CA": "California",
+    "AL": "Alabama", "FL": "Florida", "GA": "Georgia", "TX": "Texas",
+    "NC": "North Carolina", "SC": "South Carolina", "TN": "Tennessee",
+    "NY": "New York", "CA": "California", "MI": "Michigan",
+    "OH": "Ohio", "IL": "Illinois", "PA": "Pennsylvania",
 }
 
+# ============================================================
+# Helpers
+# ============================================================
 
 def clear_screen():
     for widget in app.winfo_children():
         widget.destroy()
 
 
-def reset_dim_timer():
-    is_dimmed["value"] = False
-
+def cancel_dim_timer():
     if dim_job["id"] is not None:
         try:
             app.after_cancel(dim_job["id"])
         except Exception:
             pass
+        dim_job["id"] = None
 
+
+def reset_dim_timer():
+    cancel_dim_timer()
+    is_dimmed["value"] = False
     dim_job["id"] = app.after(DIM_AFTER_MS, dim_idle_screen)
 
 
 def dim_idle_screen():
-    is_dimmed["value"] = True
-    show_idle_screen(dimmed=True)
+    if active_screen["name"] == "clock":
+        is_dimmed["value"] = True
+        show_idle_screen(dimmed=True)
 
 
-def nav_button(parent, text, command):
+def nav_button(parent, text, command, height=78, font_size=28):
     return ctk.CTkButton(
         parent,
         text=text,
         command=command,
-        height=78,
-        font=("Arial", 28, "bold"),
+        height=height,
+        font=("Arial", font_size, "bold"),
         corner_radius=20,
     )
 
@@ -141,12 +157,7 @@ def get_coordinates(city_name):
             requested_state = state_lookup[requested_state.upper()]
 
     geo_url = "https://geocoding-api.open-meteo.com/v1/search"
-    geo_params = {
-        "name": city_search,
-        "count": 10,
-        "language": "en",
-        "format": "json",
-    }
+    geo_params = {"name": city_search, "count": 10, "language": "en", "format": "json"}
 
     response = requests.get(geo_url, params=geo_params, timeout=10)
     data = response.json()
@@ -154,13 +165,11 @@ def get_coordinates(city_name):
     if "results" not in data:
         return None
 
-    results = data["results"]
-    selected_place = results[0]
+    selected_place = data["results"][0]
 
     if requested_state:
-        for place in results:
-            place_state = place.get("admin1", "")
-            if place_state.lower() == requested_state.lower():
+        for place in data["results"]:
+            if place.get("admin1", "").lower() == requested_state.lower():
                 selected_place = place
                 break
 
@@ -234,16 +243,17 @@ def load_idle_weather():
 
         except Exception:
             idle_weather_data["city"] = "WEATHER UNAVAILABLE"
-            idle_weather_data["temp"] = "--°F"
-            idle_weather_data["feels"] = "FEELS --°F"
-            idle_weather_data["humidity"] = "HUM --%"
-            idle_weather_data["wind"] = "WIND -- MPH"
 
     threading.Thread(target=worker, daemon=True).start()
 
+# ============================================================
+# Clock Screen
+# ============================================================
 
 def show_idle_screen(dimmed=False):
+    active_screen["name"] = "clock"
     clear_screen()
+    force_fullscreen()
 
     if dimmed:
         bg = "#000000"
@@ -259,85 +269,31 @@ def show_idle_screen(dimmed=False):
     idle_frame = ctk.CTkFrame(app, fg_color=bg)
     idle_frame.pack(fill="both", expand=True)
 
-    ctk.CTkLabel(
-        idle_frame,
-        text="ΚΑΨ",
-        font=("Times New Roman", 96, "bold"),
-        text_color=red,
-    ).place(relx=0.5, rely=0.095, anchor="center")
+    ctk.CTkLabel(idle_frame, text="ΚΑΨ", font=("Times New Roman", 96, "bold"), text_color=red).place(relx=0.5, rely=0.095, anchor="center")
+    ctk.CTkLabel(idle_frame, text="KAPPA ALPHA PSI", font=("Times New Roman", 25, "bold"), text_color=white).place(relx=0.5, rely=0.205, anchor="center")
+    ctk.CTkLabel(idle_frame, text="FRATERNITY, INC.", font=("Arial", 15, "bold"), text_color=red).place(relx=0.5, rely=0.265, anchor="center")
 
-    ctk.CTkLabel(
-        idle_frame,
-        text="KAPPA ALPHA PSI",
-        font=("Times New Roman", 25, "bold"),
-        text_color=white,
-    ).place(relx=0.5, rely=0.205, anchor="center")
+    ctk.CTkLabel(idle_frame, text="19", font=("Times New Roman", 92, "bold"), text_color=side_red).place(relx=0.13, rely=0.52, anchor="center")
+    ctk.CTkLabel(idle_frame, text="N I N E T E E N", font=("Arial", 15, "bold"), text_color=white).place(relx=0.13, rely=0.675, anchor="center")
 
-    ctk.CTkLabel(
-        idle_frame,
-        text="FRATERNITY, INC.",
-        font=("Arial", 15, "bold"),
-        text_color=red,
-    ).place(relx=0.5, rely=0.265, anchor="center")
-
-    ctk.CTkLabel(
-        idle_frame,
-        text="19",
-        font=("Times New Roman", 92, "bold"),
-        text_color=side_red,
-    ).place(relx=0.13, rely=0.52, anchor="center")
-
-    ctk.CTkLabel(
-        idle_frame,
-        text="N I N E T E E N",
-        font=("Arial", 15, "bold"),
-        text_color=white,
-    ).place(relx=0.13, rely=0.675, anchor="center")
-
-    ctk.CTkLabel(
-        idle_frame,
-        text="11",
-        font=("Times New Roman", 92, "bold"),
-        text_color=side_red,
-    ).place(relx=0.87, rely=0.52, anchor="center")
-
-    ctk.CTkLabel(
-        idle_frame,
-        text="E L E V E N",
-        font=("Arial", 15, "bold"),
-        text_color=white,
-    ).place(relx=0.87, rely=0.675, anchor="center")
+    ctk.CTkLabel(idle_frame, text="11", font=("Times New Roman", 92, "bold"), text_color=side_red).place(relx=0.87, rely=0.52, anchor="center")
+    ctk.CTkLabel(idle_frame, text="E L E V E N", font=("Arial", 15, "bold"), text_color=white).place(relx=0.87, rely=0.675, anchor="center")
 
     clock_frame = ctk.CTkFrame(idle_frame, fg_color="transparent")
     clock_frame.place(relx=0.5, rely=0.50, anchor="center")
 
-    time_label = ctk.CTkLabel(
-        clock_frame,
-        text="",
-        font=("Arial", 138, "bold"),
-        text_color=white,
-    )
+    time_label = ctk.CTkLabel(clock_frame, text="", font=("Arial", 138, "bold"), text_color=white)
     time_label.grid(row=0, column=0, padx=(0, 8))
 
-    pm_label = ctk.CTkLabel(
-        clock_frame,
-        text="",
-        font=("Arial", 42, "bold"),
-        text_color=white,
-    )
+    pm_label = ctk.CTkLabel(clock_frame, text="", font=("Arial", 42, "bold"), text_color=white)
     pm_label.grid(row=0, column=1, sticky="s", pady=(0, 18))
 
-    date_label = ctk.CTkLabel(
-        idle_frame,
-        text="",
-        font=("Arial", 25, "bold"),
-        text_color=red,
-    )
+    date_label = ctk.CTkLabel(idle_frame, text="", font=("Arial", 25, "bold"), text_color=red)
     date_label.place(relx=0.5, rely=0.685, anchor="center")
 
     ctk.CTkLabel(
         idle_frame,
-        text="TAP ANYWHERE TO OPEN EDA" if not dimmed else "TAP TO WAKE",
+        text="TAP TO WAKE" if dimmed else "TAP ANYWHERE TO OPEN EDA",
         font=("Arial", 17, "bold"),
         text_color=white,
     ).place(relx=0.5, rely=0.805, anchor="center")
@@ -365,29 +321,26 @@ def show_idle_screen(dimmed=False):
     ).place(relx=0.5, rely=0.965, anchor="center")
 
     def update_idle_clock():
-        if time_label.winfo_exists():
-            now = datetime.now()
-            time_label.configure(text=now.strftime("%I:%M").lstrip("0"))
-            pm_label.configure(text=now.strftime("%p"))
-            date_label.configure(text=now.strftime("%A, %B %d").upper())
-            city_label.configure(text=idle_weather_data["city"])
-            temp_label.configure(text=idle_weather_data["temp"])
-            feels_label.configure(text=idle_weather_data["feels"])
-            hum_label.configure(text=idle_weather_data["humidity"])
-            wind_label.configure(text=idle_weather_data["wind"])
-            app.after(1000, update_idle_clock)
+        if active_screen["name"] != "clock" or not time_label.winfo_exists():
+            return
+
+        now = datetime.now()
+        time_label.configure(text=now.strftime("%I:%M").lstrip("0"))
+        pm_label.configure(text=now.strftime("%p"))
+        date_label.configure(text=now.strftime("%A, %B %d").upper())
+        city_label.configure(text=idle_weather_data["city"])
+        temp_label.configure(text=idle_weather_data["temp"])
+        feels_label.configure(text=idle_weather_data["feels"])
+        hum_label.configure(text=idle_weather_data["humidity"])
+        wind_label.configure(text=idle_weather_data["wind"])
+        app.after(1000, update_idle_clock)
 
     def wake_or_open(event=None):
         if is_dimmed["value"]:
             is_dimmed["value"] = False
             show_idle_screen(dimmed=False)
-            reset_dim_timer()
         else:
-            if dim_job["id"] is not None:
-                try:
-                    app.after_cancel(dim_job["id"])
-                except Exception:
-                    pass
+            cancel_dim_timer()
             show_main_screen()
 
     idle_frame.bind("<Button-1>", wake_or_open)
@@ -399,15 +352,15 @@ def show_idle_screen(dimmed=False):
     if not dimmed:
         reset_dim_timer()
 
+# ============================================================
+# Main Menu
+# ============================================================
 
 def show_main_screen():
+    active_screen["name"] = "main"
+    cancel_dim_timer()
     clear_screen()
-
-    if dim_job["id"] is not None:
-        try:
-            app.after_cancel(dim_job["id"])
-        except Exception:
-            pass
+    force_fullscreen()
 
     header = ctk.CTkFrame(app, fg_color="#080808", height=70)
     header.pack(fill="x")
@@ -428,53 +381,34 @@ def show_main_screen():
     ]
 
     for i, (text, command) in enumerate(buttons):
-        huge_button(button_frame, text, command).grid(
-            row=i // 2,
-            column=i % 2,
-            sticky="nsew",
-            padx=12,
-            pady=9,
-        )
+        huge_button(button_frame, text, command).grid(row=i // 2, column=i % 2, sticky="nsew", padx=12, pady=9)
 
     for col in range(2):
         button_frame.grid_columnconfigure(col, weight=1)
     for row in range(3):
         button_frame.grid_rowconfigure(row, weight=1)
 
+# ============================================================
+# Units
+# ============================================================
 
 def show_units_screen():
+    active_screen["name"] = "units"
     clear_screen()
+    force_fullscreen()
 
     container = ctk.CTkFrame(app, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=18, pady=12)
 
     ctk.CTkLabel(container, text="Unit Converter", font=("Arial", 34, "bold")).pack(pady=(0, 8))
 
-    category_dropdown = ctk.CTkOptionMenu(
-        container,
-        values=list(conversions.keys()),
-        width=720,
-        height=65,
-        font=("Arial", 28),
-    )
+    category_dropdown = ctk.CTkOptionMenu(container, values=list(conversions.keys()), width=720, height=65, font=("Arial", 28))
     category_dropdown.pack(pady=5)
 
-    conversion_dropdown = ctk.CTkOptionMenu(
-        container,
-        values=list(conversions["Length"].keys()),
-        width=720,
-        height=65,
-        font=("Arial", 28),
-    )
+    conversion_dropdown = ctk.CTkOptionMenu(container, values=list(conversions["Length"].keys()), width=720, height=65, font=("Arial", 28))
     conversion_dropdown.pack(pady=5)
 
-    input_box = ctk.CTkEntry(
-        container,
-        placeholder_text="Enter value",
-        width=720,
-        height=70,
-        font=("Arial", 32),
-    )
+    input_box = ctk.CTkEntry(container, placeholder_text="Enter value", width=720, height=70, font=("Arial", 32))
     input_box.pack(pady=8)
 
     result_label = ctk.CTkLabel(container, text="Result will appear here", font=("Arial", 26, "bold"))
@@ -510,9 +444,14 @@ def show_units_screen():
     for i in range(3):
         nav.grid_columnconfigure(i, weight=1)
 
+# ============================================================
+# Weather
+# ============================================================
 
 def show_weather_screen():
+    active_screen["name"] = "weather"
     clear_screen()
+    force_fullscreen()
 
     container = ctk.CTkFrame(app, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=16, pady=10)
@@ -525,10 +464,17 @@ def show_weather_screen():
     city_entry = ctk.CTkEntry(top, placeholder_text="Auburn, AL", height=65, font=("Arial", 26))
     city_entry.grid(row=0, column=0, sticky="nsew", padx=6)
 
+    nav_button(top, "Add", lambda: add_city()).grid(row=0, column=1, sticky="nsew", padx=6)
+    nav_button(top, "Back", show_main_screen).grid(row=0, column=2, sticky="nsew", padx=6)
+
+    top.grid_columnconfigure(0, weight=3)
+    top.grid_columnconfigure(1, weight=1)
+    top.grid_columnconfigure(2, weight=1)
+
     status_label = ctk.CTkLabel(container, text="", font=("Arial", 18))
     status_label.pack(pady=2)
 
-    content_frame = ctk.CTkFrame(container)
+    content_frame = ctk.CTkScrollableFrame(container)
     content_frame.pack(fill="both", expand=True, pady=6)
 
     def refresh_weather_cards():
@@ -537,8 +483,10 @@ def show_weather_screen():
 
         if not saved_weather_locations:
             ctk.CTkLabel(content_frame, text="Search for a city to add weather.", font=("Arial", 28, "bold")).pack(expand=True)
-        else:
-            build_large_weather_view(content_frame, saved_weather_locations[-1])
+            return
+
+        for idx, location in enumerate(saved_weather_locations):
+            build_weather_card(content_frame, location, idx)
 
     def add_city():
         city_name = city_entry.get().strip()
@@ -554,48 +502,167 @@ def show_weather_screen():
                 if location is None:
                     app.after(0, lambda: status_label.configure(text="City not found."))
                     return
+
                 saved_weather_locations.append(location)
                 app.after(0, lambda: city_entry.delete(0, "end"))
                 app.after(0, lambda: status_label.configure(text=f"Added {location_display_name(location)}"))
                 app.after(0, refresh_weather_cards)
+
             except Exception as error:
                 app.after(0, lambda: status_label.configure(text=f"Weather error: {error}"))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    nav_button(top, "Add", add_city).grid(row=0, column=1, sticky="nsew", padx=6)
-    nav_button(top, "Back", show_main_screen).grid(row=0, column=2, sticky="nsew", padx=6)
-
-    top.grid_columnconfigure(0, weight=3)
-    top.grid_columnconfigure(1, weight=1)
-    top.grid_columnconfigure(2, weight=1)
-
     refresh_weather_cards()
 
 
-def build_large_weather_view(parent, location):
+def build_weather_card(parent, location, idx):
+    card = ctk.CTkFrame(parent)
+    card.pack(fill="x", padx=10, pady=8)
+
+    loading_label = ctk.CTkLabel(card, text=f"Loading {location_display_name(location)}...", font=("Arial", 22, "bold"))
+    loading_label.pack(pady=20)
+
+    def worker():
+        try:
+            data = get_weather(location)
+            current = data["current"]
+
+            temp = current["temperature_2m"]
+            feels = current["apparent_temperature"]
+            humidity = current["relative_humidity_2m"]
+            wind = current["wind_speed_10m"]
+
+            def update_card():
+                for widget in card.winfo_children():
+                    widget.destroy()
+
+                ctk.CTkLabel(card, text=location_display_name(location), font=("Arial", 24, "bold")).pack(pady=(8, 2))
+                ctk.CTkLabel(card, text=f"{temp:.0f}°F | Feels {feels:.0f}°F", font=("Arial", 30, "bold")).pack()
+                ctk.CTkLabel(card, text=f"Humidity {humidity}% | Wind {wind:.0f} mph | Local {city_local_time(location)}", font=("Arial", 17)).pack(pady=4)
+
+                btn_row = ctk.CTkFrame(card, fg_color="transparent")
+                btn_row.pack(fill="x", padx=12, pady=8)
+
+                nav_button(btn_row, "Open Forecast", lambda loc=location: show_weather_detail_screen(loc), 70, 22).grid(row=0, column=0, sticky="nsew", padx=6)
+                nav_button(btn_row, "Remove", lambda i=idx: remove_weather_city(i), 70, 22).grid(row=0, column=1, sticky="nsew", padx=6)
+
+                btn_row.grid_columnconfigure(0, weight=1)
+                btn_row.grid_columnconfigure(1, weight=1)
+
+            app.after(0, update_card)
+
+        except Exception:
+            app.after(0, lambda: loading_label.configure(text="Could not load weather card."))
+
+    threading.Thread(target=worker, daemon=True).start()
+
+
+def remove_weather_city(index):
     try:
-        data = get_weather(location)
-        current = data["current"]
+        saved_weather_locations.pop(index)
+    except IndexError:
+        pass
+    show_weather_screen()
 
-        name = location_display_name(location)
-        temp = current["temperature_2m"]
-        feels = current["apparent_temperature"]
-        humidity = current["relative_humidity_2m"]
-        wind = current["wind_speed_10m"]
-        precip = current["precipitation"]
 
-        ctk.CTkLabel(parent, text=name, font=("Arial", 30, "bold")).pack(pady=(10, 2))
-        ctk.CTkLabel(parent, text=f"{temp:.0f}°F", font=("Arial", 76, "bold")).pack(pady=2)
-        ctk.CTkLabel(parent, text=f"Feels {feels:.0f}°F", font=("Arial", 26, "bold")).pack()
-        ctk.CTkLabel(parent, text=f"Humidity {humidity}%   Wind {wind:.0f} mph   Rain {precip:.2f} in", font=("Arial", 22)).pack(pady=8)
+def show_weather_detail_screen(location):
+    active_screen["name"] = "weather_detail"
+    clear_screen()
+    force_fullscreen()
 
-    except Exception as error:
-        ctk.CTkLabel(parent, text=f"Could not load weather: {error}", font=("Arial", 22)).pack(expand=True)
+    container = ctk.CTkFrame(app, fg_color="transparent")
+    container.pack(fill="both", expand=True, padx=16, pady=8)
 
+    ctk.CTkLabel(container, text=location_display_name(location), font=("Arial", 28, "bold")).pack(pady=(0, 2))
+
+    top_info = ctk.CTkLabel(container, text="Loading forecast...", font=("Arial", 20, "bold"))
+    top_info.pack(pady=4)
+
+    forecast_area = ctk.CTkFrame(container)
+    forecast_area.pack(fill="both", expand=True, pady=4)
+
+    nav = ctk.CTkFrame(container, fg_color="transparent")
+    nav.pack(fill="x", pady=5)
+
+    nav_button(nav, "Back", show_weather_screen).grid(row=0, column=0, sticky="nsew", padx=6)
+    nav_button(nav, "Main", show_main_screen).grid(row=0, column=1, sticky="nsew", padx=6)
+    nav_button(nav, "Clock", show_idle_screen).grid(row=0, column=2, sticky="nsew", padx=6)
+
+    for i in range(3):
+        nav.grid_columnconfigure(i, weight=1)
+
+    def worker():
+        try:
+            data = get_weather(location)
+            current = data["current"]
+            hourly = data["hourly"]
+            daily = data["daily"]
+
+            def update_detail():
+                top_info.configure(
+                    text=f"{current['temperature_2m']:.0f}°F | Feels {current['apparent_temperature']:.0f}°F | Humidity {current['relative_humidity_2m']}% | Wind {current['wind_speed_10m']:.0f} mph"
+                )
+
+                for widget in forecast_area.winfo_children():
+                    widget.destroy()
+
+                tabview = ctk.CTkTabview(forecast_area)
+                tabview.pack(fill="both", expand=True, padx=5, pady=5)
+
+                today_tab = tabview.add("Rest of Day")
+                week_tab = tabview.add("7-Day")
+
+                hourly_box = ctk.CTkScrollableFrame(today_tab)
+                hourly_box.pack(fill="both", expand=True, padx=8, pady=8)
+
+                city_now = datetime.now(ZoneInfo(location["timezone"]))
+                shown = 0
+
+                for time_text, temp, rain, wind in zip(
+                    hourly["time"],
+                    hourly["temperature_2m"],
+                    hourly["precipitation_probability"],
+                    hourly["wind_speed_10m"],
+                ):
+                    hour_dt = datetime.fromisoformat(time_text)
+
+                    if hour_dt.date() == city_now.date() and hour_dt.hour >= city_now.hour:
+                        row_text = f"{hour_dt.strftime('%I %p')}   {temp:.0f}°F   Rain {rain}%   Wind {wind:.0f} mph"
+                        ctk.CTkLabel(hourly_box, text=row_text, font=("Arial", 20)).pack(anchor="w", pady=4)
+                        shown += 1
+
+                if shown == 0:
+                    ctk.CTkLabel(hourly_box, text="No more hourly data for today.", font=("Arial", 20)).pack(pady=10)
+
+                daily_box = ctk.CTkScrollableFrame(week_tab)
+                daily_box.pack(fill="both", expand=True, padx=8, pady=8)
+
+                for day, high, low, rain in zip(
+                    daily["time"],
+                    daily["temperature_2m_max"],
+                    daily["temperature_2m_min"],
+                    daily["precipitation_probability_max"],
+                ):
+                    day_name = datetime.fromisoformat(day).strftime("%a %m/%d")
+                    row_text = f"{day_name}   High {high:.0f}°F   Low {low:.0f}°F   Rain {rain}%"
+                    ctk.CTkLabel(daily_box, text=row_text, font=("Arial", 20)).pack(anchor="w", pady=5)
+
+            app.after(0, update_detail)
+
+        except Exception as error:
+            app.after(0, lambda: top_info.configure(text=f"Could not load forecast: {error}"))
+
+    threading.Thread(target=worker, daemon=True).start()
+
+# ============================================================
+# Timer
+# ============================================================
 
 def show_timer_screen():
+    active_screen["name"] = "timer"
     clear_screen()
+    force_fullscreen()
 
     container = ctk.CTkFrame(app, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=16, pady=10)
@@ -630,6 +697,9 @@ def show_timer_screen():
         timer_label.configure(text=format_time(remaining_time["seconds"]))
 
     def tick():
+        if active_screen["name"] != "timer":
+            return
+
         if timer_running["active"] and remaining_time["seconds"] > 0:
             remaining_time["seconds"] -= 1
             update_display()
@@ -679,9 +749,14 @@ def show_timer_screen():
         for i in range(cols):
             frame.grid_columnconfigure(i, weight=1)
 
+# ============================================================
+# Notes
+# ============================================================
 
 def show_notes_screen():
+    active_screen["name"] = "notes"
     clear_screen()
+    force_fullscreen()
 
     container = ctk.CTkFrame(app, fg_color="transparent")
     container.pack(fill="both", expand=True, padx=16, pady=10)
@@ -715,6 +790,9 @@ def show_notes_screen():
     for i in range(3):
         nav.grid_columnconfigure(i, weight=1)
 
+# ============================================================
+# Start
+# ============================================================
 
 load_idle_weather()
 show_idle_screen()
