@@ -20,11 +20,13 @@ SCREEN_W = app.winfo_screenwidth()
 SCREEN_H = app.winfo_screenheight()
 app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
 
+
 def force_fullscreen():
     app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
     app.attributes("-fullscreen", True)
     app.lift()
     app.focus_force()
+
 
 app.after(200, force_fullscreen)
 app.bind("<Escape>", lambda e: app.destroy())
@@ -87,9 +89,11 @@ state_lookup = {
     "OH": "Ohio", "IL": "Illinois", "PA": "Pennsylvania",
 }
 
+
 def clear_screen():
     for widget in app.winfo_children():
         widget.destroy()
+
 
 def cancel_dim_timer():
     if dim_job["id"] is not None:
@@ -99,15 +103,18 @@ def cancel_dim_timer():
             pass
         dim_job["id"] = None
 
+
 def reset_dim_timer():
     cancel_dim_timer()
     is_dimmed["value"] = False
     dim_job["id"] = app.after(DIM_AFTER_MS, dim_idle_screen)
 
+
 def dim_idle_screen():
     if active_screen["name"] == "clock":
         is_dimmed["value"] = True
         show_idle_screen(dimmed=True)
+
 
 def full_button(parent, text, command, size=28):
     return ctk.CTkButton(
@@ -119,31 +126,17 @@ def full_button(parent, text, command, size=28):
         border_width=0,
     )
 
-def tk_entry(parent, font_size=34, justify="center"):
-    entry = tk.Entry(
-        parent,
-        font=("Arial", font_size, "bold"),
-        bg="#1F2937",
-        fg="white",
-        insertbackground="white",
-        relief="flat",
-        justify=justify,
-    )
-    entry.bind("<Button-1>", lambda e: entry.focus_set())
-    return entry
 
-def tk_textbox(parent, font_size=28):
-    box = tk.Text(
+def keypad_button(parent, text, command, size=26):
+    return ctk.CTkButton(
         parent,
-        font=("Arial", font_size, "bold"),
-        bg="#1F2937",
-        fg="white",
-        insertbackground="white",
-        relief="flat",
-        wrap="word",
+        text=text,
+        command=command,
+        font=("Arial", size, "bold"),
+        corner_radius=18,
+        border_width=0,
     )
-    box.bind("<Button-1>", lambda e: box.focus_set())
-    return box
+
 
 def get_coordinates(city_name):
     search_parts = [part.strip() for part in city_name.strip().split(",")]
@@ -182,6 +175,7 @@ def get_coordinates(city_name):
         "timezone": selected_place.get("timezone", "auto"),
     }
 
+
 def get_weather(location):
     response = requests.get(
         "https://api.open-meteo.com/v1/forecast",
@@ -201,6 +195,7 @@ def get_weather(location):
     )
     return response.json()
 
+
 def location_display_name(location):
     parts = [location["name"]]
     if location["state"]:
@@ -208,6 +203,7 @@ def location_display_name(location):
     if location["country"]:
         parts.append(location["country"])
     return ", ".join(parts)
+
 
 def city_local_time(location):
     try:
@@ -217,6 +213,7 @@ def city_local_time(location):
         return datetime.now(ZoneInfo(timezone)).strftime("%I:%M %p")
     except Exception:
         return "Local time unavailable"
+
 
 def load_idle_weather():
     def worker():
@@ -240,6 +237,7 @@ def load_idle_weather():
             idle_weather_data["city"] = "WEATHER UNAVAILABLE"
 
     threading.Thread(target=worker, daemon=True).start()
+
 
 def show_idle_screen(dimmed=False):
     active_screen["name"] = "clock"
@@ -336,6 +334,7 @@ def show_idle_screen(dimmed=False):
     if not dimmed:
         reset_dim_timer()
 
+
 def show_main_screen():
     active_screen["name"] = "main"
     cancel_dim_timer()
@@ -371,69 +370,161 @@ def show_main_screen():
     for r in range(2, 5):
         frame.grid_rowconfigure(r, weight=3)
 
+
 def show_units_screen():
     active_screen["name"] = "units"
     clear_screen()
 
+    state = {
+        "input": "",
+        "category": "Length",
+        "conversion": list(conversions["Length"].keys())[0],
+    }
+
     frame = ctk.CTkFrame(app, fg_color="transparent")
-    frame.pack(fill="both", expand=True, padx=14, pady=14)
+    frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-    ctk.CTkLabel(frame, text="Unit Converter", font=("Arial", 36, "bold")).pack(fill="x", pady=(0, 8))
+    title = ctk.CTkLabel(frame, text="Unit Converter", font=("Arial", 34, "bold"))
+    title.grid(row=0, column=0, columnspan=4, sticky="nsew", pady=(0, 4))
 
-    category_dropdown = ctk.CTkOptionMenu(
-        frame,
-        values=list(conversions.keys()),
-        height=78,
-        font=("Arial", 32, "bold"),
-        dropdown_font=("Arial", 30),
-    )
-    category_dropdown.pack(fill="x", pady=6)
+    display = ctk.CTkLabel(frame, text="0", font=("Arial", 42, "bold"), fg_color="#1F2937", corner_radius=18)
+    display.grid(row=1, column=0, columnspan=4, sticky="nsew", padx=6, pady=6)
 
-    conversion_dropdown = ctk.CTkOptionMenu(
-        frame,
-        values=list(conversions["Length"].keys()),
-        height=78,
-        font=("Arial", 32, "bold"),
-        dropdown_font=("Arial", 30),
-    )
-    conversion_dropdown.pack(fill="x", pady=6)
+    result_label = ctk.CTkLabel(frame, text="Result will appear here", font=("Arial", 22, "bold"))
+    result_label.grid(row=2, column=0, columnspan=4, sticky="nsew", pady=4)
 
-    input_box = tk_entry(frame, font_size=34, justify="center")
-    input_box.pack(fill="x", pady=6, ipady=22)
+    selector_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    selector_frame.grid(row=3, column=0, columnspan=4, sticky="nsew")
 
-    result_label = ctk.CTkLabel(frame, text="Result will appear here", font=("Arial", 28, "bold"))
-    result_label.pack(fill="x", pady=4)
+    category_buttons = {}
+    conversion_buttons = {}
 
-    def update_conversion_options(selected_category):
-        options = list(conversions[selected_category].keys())
-        conversion_dropdown.configure(values=options)
-        conversion_dropdown.set(options[0])
-        input_box.delete(0, "end")
+    category_frame = ctk.CTkFrame(selector_frame)
+    category_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+    conversion_frame = ctk.CTkFrame(selector_frame)
+    conversion_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+
+    selector_frame.grid_columnconfigure(0, weight=1)
+    selector_frame.grid_columnconfigure(1, weight=1)
+    selector_frame.grid_rowconfigure(0, weight=1)
+
+    def update_display():
+        display.configure(text=state["input"] if state["input"] else "0")
+
+    def set_category(category):
+        state["category"] = category
+        state["conversion"] = list(conversions[category].keys())[0]
+        build_conversion_buttons()
         result_label.configure(text="Result will appear here")
 
-    category_dropdown.configure(command=update_conversion_options)
+        for cat, btn in category_buttons.items():
+            btn.configure(fg_color="#1f6aa5" if cat == category else "#2b2b2b")
+
+    def set_conversion(conversion):
+        state["conversion"] = conversion
+        result_label.configure(text="Result will appear here")
+
+        for conv, btn in conversion_buttons.items():
+            btn.configure(fg_color="#1f6aa5" if conv == conversion else "#2b2b2b")
+
+    def build_category_buttons():
+        for widget in category_frame.winfo_children():
+            widget.destroy()
+
+        cats = list(conversions.keys())
+        category_buttons.clear()
+
+        for i, cat in enumerate(cats):
+            btn = keypad_button(category_frame, cat, lambda c=cat: set_category(c), size=16)
+            btn.grid(row=i // 2, column=i % 2, sticky="nsew", padx=4, pady=4)
+            category_buttons[cat] = btn
+
+        for r in range(4):
+            category_frame.grid_rowconfigure(r, weight=1)
+        for c in range(2):
+            category_frame.grid_columnconfigure(c, weight=1)
+
+    def build_conversion_buttons():
+        for widget in conversion_frame.winfo_children():
+            widget.destroy()
+
+        opts = list(conversions[state["category"]].keys())
+        conversion_buttons.clear()
+
+        for i, conv in enumerate(opts):
+            btn = keypad_button(conversion_frame, conv, lambda cv=conv: set_conversion(cv), size=16)
+            btn.grid(row=i, column=0, sticky="nsew", padx=4, pady=4)
+            conversion_buttons[conv] = btn
+
+        for r in range(max(1, len(opts))):
+            conversion_frame.grid_rowconfigure(r, weight=1)
+        conversion_frame.grid_columnconfigure(0, weight=1)
+
+        set_conversion(state["conversion"])
+
+    def press_key(key):
+        if key == "⌫":
+            state["input"] = state["input"][:-1]
+        elif key == "Clear":
+            state["input"] = ""
+            result_label.configure(text="Result will appear here")
+        elif key == ".":
+            if "." not in state["input"]:
+                state["input"] += "."
+        else:
+            state["input"] += key
+
+        update_display()
 
     def convert_value():
         try:
-            value = float(input_box.get())
-            category = category_dropdown.get()
-            conversion_type = conversion_dropdown.get()
+            value = float(state["input"])
+            category = state["category"]
+            conversion_type = state["conversion"]
             result = conversions[category][conversion_type](value)
             from_unit, to_unit = conversion_type.split(" → ")
             result_label.configure(text=f"{value:g} {from_unit} = {result:.3f} {to_unit}")
         except ValueError:
-            result_label.configure(text="Please enter a valid number")
+            result_label.configure(text="Enter a valid number")
 
-    button_grid = ctk.CTkFrame(frame, fg_color="transparent")
-    button_grid.pack(fill="both", expand=True, pady=(6, 0))
+    keypad = ctk.CTkFrame(frame, fg_color="transparent")
+    keypad.grid(row=4, column=0, columnspan=4, sticky="nsew", pady=(4, 0))
 
-    full_button(button_grid, "Convert", convert_value, 28).grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
-    full_button(button_grid, "Clear", lambda: input_box.delete(0, "end"), 28).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
-    full_button(button_grid, "Back", show_main_screen, 28).grid(row=0, column=2, sticky="nsew", padx=6, pady=6)
+    keys = [
+        ("7", 0, 0), ("8", 0, 1), ("9", 0, 2), ("⌫", 0, 3),
+        ("4", 1, 0), ("5", 1, 1), ("6", 1, 2), ("Clear", 1, 3),
+        ("1", 2, 0), ("2", 2, 1), ("3", 2, 2), ("Convert", 2, 3),
+        ("0", 3, 0), (".", 3, 1), ("Back", 3, 2), ("Main", 3, 3),
+    ]
 
-    for i in range(3):
-        button_grid.grid_columnconfigure(i, weight=1)
-    button_grid.grid_rowconfigure(0, weight=1)
+    for text, r, c in keys:
+        if text == "Convert":
+            cmd = convert_value
+        elif text in ["Back", "Main"]:
+            cmd = show_main_screen
+        else:
+            cmd = lambda k=text: press_key(k)
+
+        keypad_button(keypad, text, cmd, size=22).grid(row=r, column=c, sticky="nsew", padx=4, pady=4)
+
+    for r in range(4):
+        keypad.grid_rowconfigure(r, weight=1)
+    for c in range(4):
+        keypad.grid_columnconfigure(c, weight=1)
+
+    for r in range(5):
+        frame.grid_rowconfigure(r, weight=1)
+    frame.grid_rowconfigure(3, weight=3)
+    frame.grid_rowconfigure(4, weight=4)
+
+    for c in range(4):
+        frame.grid_columnconfigure(c, weight=1)
+
+    build_category_buttons()
+    build_conversion_buttons()
+    set_category("Length")
+
 
 def show_weather_screen():
     active_screen["name"] = "weather"
@@ -444,12 +535,8 @@ def show_weather_screen():
 
     ctk.CTkLabel(frame, text="Weather", font=("Arial", 36, "bold")).pack(fill="x", pady=(0, 6))
 
-    top = ctk.CTkFrame(frame, fg_color="transparent")
-    top.pack(fill="x", pady=4)
-
-    city_entry = tk_entry(top, font_size=30, justify="center")
-    city_entry.insert(0, "")
-    city_entry.grid(row=0, column=0, sticky="nsew", padx=6, ipady=20)
+    preset_frame = ctk.CTkFrame(frame, fg_color="transparent")
+    preset_frame.pack(fill="x", pady=4)
 
     status_label = ctk.CTkLabel(frame, text="", font=("Arial", 20, "bold"))
     status_label.pack(fill="x", pady=2)
@@ -457,25 +544,21 @@ def show_weather_screen():
     content = ctk.CTkScrollableFrame(frame)
     content.pack(fill="both", expand=True, pady=6)
 
+    preset_cities = ["Auburn, AL", "Orlando, FL", "Dallas, TX", "Charlotte, NC"]
+
     def refresh_weather_cards():
         for widget in content.winfo_children():
             widget.destroy()
 
         if not saved_weather_locations:
-            ctk.CTkLabel(content, text="Search for a city to add weather.", font=("Arial", 30, "bold")).pack(expand=True, pady=80)
+            ctk.CTkLabel(content, text="Tap a preset city to add weather.", font=("Arial", 30, "bold")).pack(expand=True, pady=80)
             return
 
         for idx, location in enumerate(saved_weather_locations):
             build_weather_card(content, location, idx)
 
-    def add_city():
-        city_name = city_entry.get().strip()
-
-        if not city_name:
-            status_label.configure(text="Enter a city first.")
-            return
-
-        status_label.configure(text="Searching...")
+    def add_city_by_name(city_name):
+        status_label.configure(text=f"Adding {city_name}...")
 
         def worker():
             try:
@@ -486,7 +569,6 @@ def show_weather_screen():
                     return
 
                 saved_weather_locations.append(location)
-                app.after(0, lambda: city_entry.delete(0, "end"))
                 app.after(0, lambda: status_label.configure(text=f"Added {location_display_name(location)}"))
                 app.after(0, refresh_weather_cards)
 
@@ -495,14 +577,21 @@ def show_weather_screen():
 
         threading.Thread(target=worker, daemon=True).start()
 
-    full_button(top, "Add", add_city, 26).grid(row=0, column=1, sticky="nsew", padx=6)
-    full_button(top, "Back", show_main_screen, 26).grid(row=0, column=2, sticky="nsew", padx=6)
+    for i, city in enumerate(preset_cities):
+        full_button(preset_frame, city, lambda c=city: add_city_by_name(c), 20).grid(row=0, column=i, sticky="nsew", padx=4, pady=4)
+        preset_frame.grid_columnconfigure(i, weight=1)
 
-    top.grid_columnconfigure(0, weight=3)
-    top.grid_columnconfigure(1, weight=1)
-    top.grid_columnconfigure(2, weight=1)
+    nav = ctk.CTkFrame(frame, fg_color="transparent")
+    nav.pack(fill="x", pady=4)
+
+    full_button(nav, "Back", show_main_screen, 24).grid(row=0, column=0, sticky="nsew", padx=5)
+    full_button(nav, "Clock", show_idle_screen, 24).grid(row=0, column=1, sticky="nsew", padx=5)
+
+    nav.grid_columnconfigure(0, weight=1)
+    nav.grid_columnconfigure(1, weight=1)
 
     refresh_weather_cards()
+
 
 def build_weather_card(parent, location, idx):
     card = ctk.CTkFrame(parent)
@@ -543,12 +632,14 @@ def build_weather_card(parent, location, idx):
 
     threading.Thread(target=worker, daemon=True).start()
 
+
 def remove_weather_city(index):
     try:
         saved_weather_locations.pop(index)
     except IndexError:
         pass
     show_weather_screen()
+
 
 def show_weather_detail_screen(location):
     active_screen["name"] = "weather_detail"
@@ -641,103 +732,160 @@ def show_weather_detail_screen(location):
 
     threading.Thread(target=worker, daemon=True).start()
 
+
 def show_timer_screen():
     active_screen["name"] = "timer"
     clear_screen()
 
+    state = {"seconds": 0, "input": "", "running": False}
+
     frame = ctk.CTkFrame(app, fg_color="transparent")
-    frame.pack(fill="both", expand=True, padx=14, pady=14)
+    frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-    timer_running = {"active": False}
-    remaining_time = {"seconds": 0}
+    ctk.CTkLabel(frame, text="Timer", font=("Arial", 36, "bold")).grid(row=0, column=0, columnspan=4, sticky="nsew")
 
-    ctk.CTkLabel(frame, text="Timer", font=("Arial", 38, "bold")).pack(fill="x", pady=(0, 4))
+    timer_label = ctk.CTkLabel(frame, text="00:00", font=("Arial", 92, "bold"))
+    timer_label.grid(row=1, column=0, columnspan=4, sticky="nsew")
 
-    inputs = ctk.CTkFrame(frame, fg_color="transparent")
-    inputs.pack(fill="x", pady=6)
-
-    minutes_entry = tk_entry(inputs, font_size=34, justify="center")
-    seconds_entry = tk_entry(inputs, font_size=34, justify="center")
-
-    minutes_entry.grid(row=0, column=0, sticky="nsew", padx=6, ipady=22)
-    seconds_entry.grid(row=0, column=1, sticky="nsew", padx=6, ipady=22)
-
-    inputs.grid_columnconfigure(0, weight=1)
-    inputs.grid_columnconfigure(1, weight=1)
-
-    timer_label = ctk.CTkLabel(frame, text="00:00", font=("Arial", 102, "bold"))
-    timer_label.pack(fill="x", pady=3)
-
-    status_label = ctk.CTkLabel(frame, text="Ready", font=("Arial", 24, "bold"))
-    status_label.pack(fill="x", pady=2)
+    status_label = ctk.CTkLabel(frame, text="Enter minutes using keypad", font=("Arial", 22, "bold"))
+    status_label.grid(row=2, column=0, columnspan=4, sticky="nsew")
 
     def format_time(total_seconds):
         return f"{total_seconds // 60:02d}:{total_seconds % 60:02d}"
 
-    def update_display():
-        timer_label.configure(text=format_time(remaining_time["seconds"]))
+    def update_timer_display():
+        if state["input"] and not state["running"]:
+            timer_label.configure(text=state["input"])
+        else:
+            timer_label.configure(text=format_time(state["seconds"]))
+
+    def press_key(key):
+        if state["running"]:
+            return
+
+        if key == "⌫":
+            state["input"] = state["input"][:-1]
+        elif key == "Clear":
+            state["input"] = ""
+            state["seconds"] = 0
+            status_label.configure(text="Ready")
+        elif key == ":":
+            if ":" not in state["input"]:
+                state["input"] += ":"
+        else:
+            state["input"] += key
+
+        update_timer_display()
+
+    def parse_timer_input():
+        text = state["input"].strip()
+
+        if not text:
+            return 0
+
+        if ":" in text:
+            parts = text.split(":")
+            minutes = int(parts[0]) if parts[0] else 0
+            seconds = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+        else:
+            minutes = int(text)
+            seconds = 0
+
+        if seconds >= 60:
+            raise ValueError
+
+        return minutes * 60 + seconds
 
     def tick():
         if active_screen["name"] != "timer":
             return
 
-        if timer_running["active"] and remaining_time["seconds"] > 0:
-            remaining_time["seconds"] -= 1
-            update_display()
+        if state["running"] and state["seconds"] > 0:
+            state["seconds"] -= 1
+            timer_label.configure(text=format_time(state["seconds"]))
             app.after(1000, tick)
-        elif timer_running["active"] and remaining_time["seconds"] == 0:
-            timer_running["active"] = False
+        elif state["running"] and state["seconds"] == 0:
+            state["running"] = False
             status_label.configure(text="Timer complete")
 
     def start_timer():
         try:
-            minutes = int(minutes_entry.get().strip()) if minutes_entry.get().strip() else 0
-            seconds = int(seconds_entry.get().strip()) if seconds_entry.get().strip() else 0
+            if not state["running"]:
+                if state["seconds"] <= 0:
+                    state["seconds"] = parse_timer_input()
 
-            if seconds >= 60:
-                status_label.configure(text="Seconds must be less than 60")
-                return
+                if state["seconds"] <= 0:
+                    status_label.configure(text="Enter time > 0")
+                    return
 
-            total_seconds = minutes * 60 + seconds
-
-            if total_seconds <= 0:
-                status_label.configure(text="Enter time > 0")
-                return
-
-            remaining_time["seconds"] = total_seconds
-            timer_running["active"] = True
-            update_display()
-            status_label.configure(text="Running")
-            tick()
+                state["running"] = True
+                state["input"] = ""
+                status_label.configure(text="Running")
+                update_timer_display()
+                tick()
 
         except ValueError:
-            status_label.configure(text="Enter whole numbers")
+            status_label.configure(text="Invalid time")
 
-    controls = ctk.CTkFrame(frame, fg_color="transparent")
-    controls.pack(fill="both", expand=True, pady=6)
+    def pause_timer():
+        state["running"] = False
+        status_label.configure(text="Paused")
 
-    full_button(controls, "Start", start_timer, 27).grid(row=0, column=0, sticky="nsew", padx=6, pady=5)
-    full_button(controls, "Pause", lambda: [timer_running.update({"active": False}), status_label.configure(text="Paused")], 27).grid(row=0, column=1, sticky="nsew", padx=6, pady=5)
-    full_button(controls, "Reset", lambda: [timer_running.update({"active": False}), remaining_time.update({"seconds": 0}), update_display(), status_label.configure(text="Ready")], 27).grid(row=0, column=2, sticky="nsew", padx=6, pady=5)
-    full_button(controls, "Back", show_main_screen, 27).grid(row=1, column=0, sticky="nsew", padx=6, pady=5)
-    full_button(controls, "Clock", show_idle_screen, 27).grid(row=1, column=1, columnspan=2, sticky="nsew", padx=6, pady=5)
+    def reset_timer():
+        state["running"] = False
+        state["seconds"] = 0
+        state["input"] = ""
+        status_label.configure(text="Ready")
+        update_timer_display()
 
-    for c in range(3):
-        controls.grid_columnconfigure(c, weight=1)
-    for r in range(2):
-        controls.grid_rowconfigure(r, weight=1)
+    keys = [
+        ("7", 3, 0), ("8", 3, 1), ("9", 3, 2), ("Start", 3, 3),
+        ("4", 4, 0), ("5", 4, 1), ("6", 4, 2), ("Pause", 4, 3),
+        ("1", 5, 0), ("2", 5, 1), ("3", 5, 2), ("Reset", 5, 3),
+        ("0", 6, 0), (":", 6, 1), ("⌫", 6, 2), ("Back", 6, 3),
+    ]
+
+    for text, r, c in keys:
+        if text == "Start":
+            cmd = start_timer
+        elif text == "Pause":
+            cmd = pause_timer
+        elif text == "Reset":
+            cmd = reset_timer
+        elif text == "Back":
+            cmd = show_main_screen
+        else:
+            cmd = lambda k=text: press_key(k)
+
+        keypad_button(frame, text, cmd, size=24).grid(row=r, column=c, sticky="nsew", padx=5, pady=5)
+
+    for r in range(7):
+        frame.grid_rowconfigure(r, weight=1)
+    frame.grid_rowconfigure(1, weight=2)
+
+    for c in range(4):
+        frame.grid_columnconfigure(c, weight=1)
+
 
 def show_notes_screen():
     active_screen["name"] = "notes"
     clear_screen()
 
     frame = ctk.CTkFrame(app, fg_color="transparent")
-    frame.pack(fill="both", expand=True, padx=14, pady=14)
+    frame.pack(fill="both", expand=True, padx=8, pady=8)
 
-    ctk.CTkLabel(frame, text="Quick Notes", font=("Arial", 38, "bold")).pack(fill="x", pady=(0, 6))
+    ctk.CTkLabel(frame, text="Quick Notes", font=("Arial", 32, "bold")).grid(row=0, column=0, columnspan=10, sticky="nsew")
 
-    notes_box = tk_textbox(frame, font_size=28)
-    notes_box.pack(fill="both", expand=True, pady=6)
+    notes_box = tk.Text(
+        frame,
+        font=("Arial", 18, "bold"),
+        bg="#1F2937",
+        fg="white",
+        insertbackground="white",
+        relief="flat",
+        wrap="word",
+    )
+    notes_box.grid(row=1, column=0, columnspan=10, sticky="nsew", padx=5, pady=5)
 
     try:
         with open("notes.txt", "r") as file:
@@ -745,23 +893,83 @@ def show_notes_screen():
     except FileNotFoundError:
         notes_box.insert("1.0", "Project EDA notes...\n")
 
-    status_label = ctk.CTkLabel(frame, text="", font=("Arial", 20, "bold"))
-    status_label.pack(fill="x", pady=2)
+    status_label = ctk.CTkLabel(frame, text="", font=("Arial", 16, "bold"))
+    status_label.grid(row=2, column=0, columnspan=10, sticky="nsew")
+
+    def insert_text(text):
+        notes_box.insert("end", text)
+        notes_box.see("end")
+
+    def quick_note(kind):
+        timestamp = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+
+        templates = {
+            "Timestamp": f"\n[{timestamp}] ",
+            "Project": f"\n[{timestamp}] PROJECT UPDATE:\n- ",
+            "To-Do": f"\n[{timestamp}] TO-DO:\n- ",
+            "Idea": f"\n[{timestamp}] IDEA:\n- ",
+            "Bug": f"\n[{timestamp}] BUG / ISSUE:\n- ",
+        }
+
+        insert_text(templates[kind])
 
     def save_notes():
         with open("notes.txt", "w") as file:
             file.write(notes_box.get("1.0", "end"))
         status_label.configure(text="Notes saved")
 
-    nav = ctk.CTkFrame(frame, fg_color="transparent")
-    nav.pack(fill="x", pady=4)
+    def clear_notes():
+        notes_box.delete("1.0", "end")
+        status_label.configure(text="Notes cleared")
 
-    full_button(nav, "Save", save_notes, 26).grid(row=0, column=0, sticky="nsew", padx=6)
-    full_button(nav, "Back", show_main_screen, 26).grid(row=0, column=1, sticky="nsew", padx=6)
-    full_button(nav, "Clock", show_idle_screen, 26).grid(row=0, column=2, sticky="nsew", padx=6)
+    quicks = [
+        ("Timestamp", lambda: quick_note("Timestamp")),
+        ("Project", lambda: quick_note("Project")),
+        ("To-Do", lambda: quick_note("To-Do")),
+        ("Idea", lambda: quick_note("Idea")),
+        ("Bug", lambda: quick_note("Bug")),
+        ("Save", save_notes),
+        ("Clear", clear_notes),
+        ("Back", show_main_screen),
+        ("Clock", show_idle_screen),
+        ("Space", lambda: insert_text(" ")),
+    ]
 
-    for i in range(3):
-        nav.grid_columnconfigure(i, weight=1)
+    for i, (text, cmd) in enumerate(quicks):
+        keypad_button(frame, text, cmd, size=14).grid(row=3 + i // 5, column=i % 5, columnspan=2, sticky="nsew", padx=3, pady=3)
+
+    keyboard_rows = [
+        list("QWERTYUIOP"),
+        list("ASDFGHJKL"),
+        list("ZXCVBNM"),
+    ]
+
+    start_row = 5
+
+    for r, letters in enumerate(keyboard_rows):
+        for c, letter in enumerate(letters):
+            keypad_button(frame, letter, lambda l=letter: insert_text(l.lower()), size=15).grid(
+                row=start_row + r,
+                column=c,
+                sticky="nsew",
+                padx=2,
+                pady=2,
+            )
+
+    keypad_button(frame, "SPACE", lambda: insert_text(" "), size=15).grid(row=8, column=0, columnspan=3, sticky="nsew", padx=2, pady=2)
+    keypad_button(frame, "ENTER", lambda: insert_text("\n"), size=15).grid(row=8, column=3, columnspan=3, sticky="nsew", padx=2, pady=2)
+    keypad_button(frame, "⌫", lambda: notes_box.delete("end-2c", "end-1c"), size=15).grid(row=8, column=6, columnspan=2, sticky="nsew", padx=2, pady=2)
+    keypad_button(frame, ".", lambda: insert_text("."), size=15).grid(row=8, column=8, sticky="nsew", padx=2, pady=2)
+    keypad_button(frame, "-", lambda: insert_text("-"), size=15).grid(row=8, column=9, sticky="nsew", padx=2, pady=2)
+
+    for r in range(9):
+        frame.grid_rowconfigure(r, weight=1)
+
+    frame.grid_rowconfigure(1, weight=4)
+
+    for c in range(10):
+        frame.grid_columnconfigure(c, weight=1)
+
 
 load_idle_weather()
 show_idle_screen()
