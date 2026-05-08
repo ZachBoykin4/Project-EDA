@@ -20,11 +20,11 @@ SCREEN_W = app.winfo_screenwidth()
 SCREEN_H = app.winfo_screenheight()
 app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
 
-
 def force_fullscreen():
     app.geometry(f"{SCREEN_W}x{SCREEN_H}+0+0")
     app.attributes("-fullscreen", True)
-
+    app.lift()
+    app.focus_force()
 
 app.after(200, force_fullscreen)
 app.bind("<Escape>", lambda e: app.destroy())
@@ -81,26 +81,15 @@ conversions = {
 }
 
 state_lookup = {
-    "AL": "Alabama",
-    "FL": "Florida",
-    "GA": "Georgia",
-    "TX": "Texas",
-    "NC": "North Carolina",
-    "SC": "South Carolina",
-    "TN": "Tennessee",
-    "NY": "New York",
-    "CA": "California",
-    "MI": "Michigan",
-    "OH": "Ohio",
-    "IL": "Illinois",
-    "PA": "Pennsylvania",
+    "AL": "Alabama", "FL": "Florida", "GA": "Georgia", "TX": "Texas",
+    "NC": "North Carolina", "SC": "South Carolina", "TN": "Tennessee",
+    "NY": "New York", "CA": "California", "MI": "Michigan",
+    "OH": "Ohio", "IL": "Illinois", "PA": "Pennsylvania",
 }
-
 
 def clear_screen():
     for widget in app.winfo_children():
         widget.destroy()
-
 
 def cancel_dim_timer():
     if dim_job["id"] is not None:
@@ -110,18 +99,15 @@ def cancel_dim_timer():
             pass
         dim_job["id"] = None
 
-
 def reset_dim_timer():
     cancel_dim_timer()
     is_dimmed["value"] = False
     dim_job["id"] = app.after(DIM_AFTER_MS, dim_idle_screen)
 
-
 def dim_idle_screen():
     if active_screen["name"] == "clock":
         is_dimmed["value"] = True
         show_idle_screen(dimmed=True)
-
 
 def full_button(parent, text, command, size=28):
     return ctk.CTkButton(
@@ -133,6 +119,31 @@ def full_button(parent, text, command, size=28):
         border_width=0,
     )
 
+def tk_entry(parent, font_size=34, justify="center"):
+    entry = tk.Entry(
+        parent,
+        font=("Arial", font_size, "bold"),
+        bg="#1F2937",
+        fg="white",
+        insertbackground="white",
+        relief="flat",
+        justify=justify,
+    )
+    entry.bind("<Button-1>", lambda e: entry.focus_set())
+    return entry
+
+def tk_textbox(parent, font_size=28):
+    box = tk.Text(
+        parent,
+        font=("Arial", font_size, "bold"),
+        bg="#1F2937",
+        fg="white",
+        insertbackground="white",
+        relief="flat",
+        wrap="word",
+    )
+    box.bind("<Button-1>", lambda e: box.focus_set())
+    return box
 
 def get_coordinates(city_name):
     search_parts = [part.strip() for part in city_name.strip().split(",")]
@@ -171,7 +182,6 @@ def get_coordinates(city_name):
         "timezone": selected_place.get("timezone", "auto"),
     }
 
-
 def get_weather(location):
     response = requests.get(
         "https://api.open-meteo.com/v1/forecast",
@@ -191,7 +201,6 @@ def get_weather(location):
     )
     return response.json()
 
-
 def location_display_name(location):
     parts = [location["name"]]
     if location["state"]:
@@ -199,7 +208,6 @@ def location_display_name(location):
     if location["country"]:
         parts.append(location["country"])
     return ", ".join(parts)
-
 
 def city_local_time(location):
     try:
@@ -209,7 +217,6 @@ def city_local_time(location):
         return datetime.now(ZoneInfo(timezone)).strftime("%I:%M %p")
     except Exception:
         return "Local time unavailable"
-
 
 def load_idle_weather():
     def worker():
@@ -233,7 +240,6 @@ def load_idle_weather():
             idle_weather_data["city"] = "WEATHER UNAVAILABLE"
 
     threading.Thread(target=worker, daemon=True).start()
-
 
 def show_idle_screen(dimmed=False):
     active_screen["name"] = "clock"
@@ -330,17 +336,16 @@ def show_idle_screen(dimmed=False):
     if not dimmed:
         reset_dim_timer()
 
-
 def show_main_screen():
     active_screen["name"] = "main"
     cancel_dim_timer()
     clear_screen()
 
-    frame = ctk.CTkFrame(app, fg_color="transparent")
-    frame.grid(row=0, column=0, sticky="nsew", padx=16, pady=16)
-
     app.grid_rowconfigure(0, weight=1)
     app.grid_columnconfigure(0, weight=1)
+
+    frame = ctk.CTkFrame(app, fg_color="transparent")
+    frame.grid(row=0, column=0, sticky="nsew", padx=16, pady=16)
 
     ctk.CTkLabel(frame, text="EDA", font=("Arial", 42, "bold")).grid(row=0, column=0, columnspan=2, sticky="nsew", pady=(0, 4))
     ctk.CTkLabel(frame, text="Engineering Dashboard Assistant", font=("Arial", 18)).grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(0, 10))
@@ -363,134 +368,72 @@ def show_main_screen():
     frame.grid_columnconfigure(1, weight=1)
     frame.grid_rowconfigure(0, weight=1)
     frame.grid_rowconfigure(1, weight=1)
-
     for r in range(2, 5):
         frame.grid_rowconfigure(r, weight=3)
-
 
 def show_units_screen():
     active_screen["name"] = "units"
     clear_screen()
 
-    frame = ctk.CTkFrame(app, fg_color="#111111")
+    frame = ctk.CTkFrame(app, fg_color="transparent")
     frame.pack(fill="both", expand=True, padx=14, pady=14)
 
-    ctk.CTkLabel(
-        frame,
-        text="Unit Converter",
-        font=("Arial", 38, "bold"),
-        text_color="white"
-    ).pack(fill="x", pady=(0, 12))
-
-    category_var = tk.StringVar(value="Length")
-    conversion_var = tk.StringVar(value=list(conversions["Length"].keys())[0])
-
-    ctk.CTkLabel(
-        frame,
-        text="Category",
-        font=("Arial", 22, "bold"),
-        text_color="white"
-    ).pack(fill="x", padx=8, pady=(4, 2))
-
-    def update_conversion_options(selected_category=None):
-        category = category_var.get()
-        options = list(conversions[category].keys())
-
-        conversion_dropdown.configure(values=options)
-        conversion_var.set(options[0])
-
-        input_box.delete(0, "end")
-        result_label.configure(text="Result will appear here")
+    ctk.CTkLabel(frame, text="Unit Converter", font=("Arial", 36, "bold")).pack(fill="x", pady=(0, 8))
 
     category_dropdown = ctk.CTkOptionMenu(
         frame,
-        variable=category_var,
         values=list(conversions.keys()),
-        command=update_conversion_options,
-        height=82,
-        font=("Arial", 30, "bold"),
-        dropdown_font=("Arial", 28, "bold"),
-        corner_radius=22,
-        fg_color="#1E88E5",
-        button_color="#1565C0",
-        button_hover_color="#0D47A1",
-        dropdown_fg_color="#1E1E1E",
-        dropdown_hover_color="#1E88E5",
-        dropdown_text_color="white",
+        height=78,
+        font=("Arial", 32, "bold"),
+        dropdown_font=("Arial", 30),
     )
-    category_dropdown.pack(fill="x", padx=8, pady=(0, 14))
-
-    ctk.CTkLabel(
-        frame,
-        text="Conversion",
-        font=("Arial", 22, "bold"),
-        text_color="white"
-    ).pack(fill="x", padx=8, pady=(4, 2))
+    category_dropdown.pack(fill="x", pady=6)
 
     conversion_dropdown = ctk.CTkOptionMenu(
         frame,
-        variable=conversion_var,
         values=list(conversions["Length"].keys()),
-        height=82,
-        font=("Arial", 30, "bold"),
-        dropdown_font=("Arial", 28, "bold"),
-        corner_radius=22,
-        fg_color="#1E88E5",
-        button_color="#1565C0",
-        button_hover_color="#0D47A1",
-        dropdown_fg_color="#1E1E1E",
-        dropdown_hover_color="#1E88E5",
-        dropdown_text_color="white",
+        height=78,
+        font=("Arial", 32, "bold"),
+        dropdown_font=("Arial", 30),
     )
-    conversion_dropdown.pack(fill="x", padx=8, pady=(0, 16))
+    conversion_dropdown.pack(fill="x", pady=6)
 
-    input_box = ctk.CTkEntry(
-        frame,
-        placeholder_text="Enter value",
-        height=84,
-        font=("Arial", 34, "bold"),
-        justify="center"
-    )
-    input_box.pack(fill="x", padx=8, pady=(0, 14))
+    input_box = tk_entry(frame, font_size=34, justify="center")
+    input_box.pack(fill="x", pady=6, ipady=22)
 
-    result_label = ctk.CTkLabel(
-        frame,
-        text="Result will appear here",
-        font=("Arial", 26, "bold"),
-        text_color="white"
-    )
-    result_label.pack(fill="x", pady=(0, 10))
+    result_label = ctk.CTkLabel(frame, text="Result will appear here", font=("Arial", 28, "bold"))
+    result_label.pack(fill="x", pady=4)
+
+    def update_conversion_options(selected_category):
+        options = list(conversions[selected_category].keys())
+        conversion_dropdown.configure(values=options)
+        conversion_dropdown.set(options[0])
+        input_box.delete(0, "end")
+        result_label.configure(text="Result will appear here")
+
+    category_dropdown.configure(command=update_conversion_options)
 
     def convert_value():
         try:
             value = float(input_box.get())
-            category = category_var.get()
-            conversion_type = conversion_var.get()
-
+            category = category_dropdown.get()
+            conversion_type = conversion_dropdown.get()
             result = conversions[category][conversion_type](value)
             from_unit, to_unit = conversion_type.split(" → ")
-
             result_label.configure(text=f"{value:g} {from_unit} = {result:.3f} {to_unit}")
-
-        except Exception:
+        except ValueError:
             result_label.configure(text="Please enter a valid number")
 
-    def clear_value():
-        input_box.delete(0, "end")
-        result_label.configure(text="Result will appear here")
+    button_grid = ctk.CTkFrame(frame, fg_color="transparent")
+    button_grid.pack(fill="both", expand=True, pady=(6, 0))
 
-    button_frame = ctk.CTkFrame(frame, fg_color="transparent")
-    button_frame.pack(fill="both", expand=True, pady=(8, 0))
+    full_button(button_grid, "Convert", convert_value, 28).grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
+    full_button(button_grid, "Clear", lambda: input_box.delete(0, "end"), 28).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
+    full_button(button_grid, "Back", show_main_screen, 28).grid(row=0, column=2, sticky="nsew", padx=6, pady=6)
 
-    full_button(button_frame, "Convert", convert_value, 30).grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
-    full_button(button_frame, "Clear", clear_value, 30).grid(row=0, column=1, sticky="nsew", padx=6, pady=6)
-    full_button(button_frame, "Back", show_main_screen, 30).grid(row=0, column=2, sticky="nsew", padx=6, pady=6)
-
-    for c in range(3):
-        button_frame.grid_columnconfigure(c, weight=1)
-
-    button_frame.grid_rowconfigure(0, weight=1)
-
+    for i in range(3):
+        button_grid.grid_columnconfigure(i, weight=1)
+    button_grid.grid_rowconfigure(0, weight=1)
 
 def show_weather_screen():
     active_screen["name"] = "weather"
@@ -504,8 +447,9 @@ def show_weather_screen():
     top = ctk.CTkFrame(frame, fg_color="transparent")
     top.pack(fill="x", pady=4)
 
-    city_entry = ctk.CTkEntry(top, placeholder_text="Auburn, AL", height=76, font=("Arial", 30, "bold"))
-    city_entry.grid(row=0, column=0, sticky="nsew", padx=6)
+    city_entry = tk_entry(top, font_size=30, justify="center")
+    city_entry.insert(0, "")
+    city_entry.grid(row=0, column=0, sticky="nsew", padx=6, ipady=20)
 
     status_label = ctk.CTkLabel(frame, text="", font=("Arial", 20, "bold"))
     status_label.pack(fill="x", pady=2)
@@ -560,7 +504,6 @@ def show_weather_screen():
 
     refresh_weather_cards()
 
-
 def build_weather_card(parent, location, idx):
     card = ctk.CTkFrame(parent)
     card.pack(fill="x", padx=8, pady=8)
@@ -600,14 +543,12 @@ def build_weather_card(parent, location, idx):
 
     threading.Thread(target=worker, daemon=True).start()
 
-
 def remove_weather_city(index):
     try:
         saved_weather_locations.pop(index)
     except IndexError:
         pass
     show_weather_screen()
-
 
 def show_weather_detail_screen(location):
     active_screen["name"] = "weather_detail"
@@ -700,7 +641,6 @@ def show_weather_detail_screen(location):
 
     threading.Thread(target=worker, daemon=True).start()
 
-
 def show_timer_screen():
     active_screen["name"] = "timer"
     clear_screen()
@@ -716,11 +656,11 @@ def show_timer_screen():
     inputs = ctk.CTkFrame(frame, fg_color="transparent")
     inputs.pack(fill="x", pady=6)
 
-    minutes_entry = ctk.CTkEntry(inputs, placeholder_text="Minutes", height=78, font=("Arial", 34, "bold"))
-    seconds_entry = ctk.CTkEntry(inputs, placeholder_text="Seconds", height=78, font=("Arial", 34, "bold"))
+    minutes_entry = tk_entry(inputs, font_size=34, justify="center")
+    seconds_entry = tk_entry(inputs, font_size=34, justify="center")
 
-    minutes_entry.grid(row=0, column=0, sticky="nsew", padx=6)
-    seconds_entry.grid(row=0, column=1, sticky="nsew", padx=6)
+    minutes_entry.grid(row=0, column=0, sticky="nsew", padx=6, ipady=22)
+    seconds_entry.grid(row=0, column=1, sticky="nsew", padx=6, ipady=22)
 
     inputs.grid_columnconfigure(0, weight=1)
     inputs.grid_columnconfigure(1, weight=1)
@@ -784,10 +724,8 @@ def show_timer_screen():
 
     for c in range(3):
         controls.grid_columnconfigure(c, weight=1)
-
     for r in range(2):
         controls.grid_rowconfigure(r, weight=1)
-
 
 def show_notes_screen():
     active_screen["name"] = "notes"
@@ -798,21 +736,21 @@ def show_notes_screen():
 
     ctk.CTkLabel(frame, text="Quick Notes", font=("Arial", 38, "bold")).pack(fill="x", pady=(0, 6))
 
-    notes_box = ctk.CTkTextbox(frame, font=("Arial", 28, "bold"))
+    notes_box = tk_textbox(frame, font_size=28)
     notes_box.pack(fill="both", expand=True, pady=6)
 
     try:
         with open("notes.txt", "r") as file:
-            notes_box.insert("0.0", file.read())
+            notes_box.insert("1.0", file.read())
     except FileNotFoundError:
-        notes_box.insert("0.0", "Project EDA notes...\n")
+        notes_box.insert("1.0", "Project EDA notes...\n")
 
     status_label = ctk.CTkLabel(frame, text="", font=("Arial", 20, "bold"))
     status_label.pack(fill="x", pady=2)
 
     def save_notes():
         with open("notes.txt", "w") as file:
-            file.write(notes_box.get("0.0", "end"))
+            file.write(notes_box.get("1.0", "end"))
         status_label.configure(text="Notes saved")
 
     nav = ctk.CTkFrame(frame, fg_color="transparent")
@@ -824,7 +762,6 @@ def show_notes_screen():
 
     for i in range(3):
         nav.grid_columnconfigure(i, weight=1)
-
 
 load_idle_weather()
 show_idle_screen()
