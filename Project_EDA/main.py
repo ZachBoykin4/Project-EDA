@@ -495,7 +495,7 @@ def show_units_screen():
         category_buttons.clear()
 
         for i, cat in enumerate(cats):
-            btn = keypad_button(category_frame, cat, lambda c=cat: set_category(c), size=22)
+            btn = keypad_button(category_frame, cat, lambda c=cat: set_category(c), size=30)
             btn.grid(row=i // 2, column=i % 2, sticky="nsew", padx=5, pady=5)
             category_buttons[cat] = btn
 
@@ -1003,7 +1003,7 @@ def show_notes_screen():
 
     notes_box = tk.Text(
         frame,
-        font=("Arial", 19, "bold"),
+        font=("Arial", 24, "bold"),
         bg="#1F2937",
         fg="white",
         insertbackground="white",
@@ -1095,7 +1095,7 @@ def show_notes_screen():
                 keyboard_frame,
                 letter,
                 lambda l=letter: insert_text(l.lower()),
-                size=22
+                size=30
             ).grid(
                 row=r,
                 column=c + offset,
@@ -1104,27 +1104,29 @@ def show_notes_screen():
                 pady=3
             )
 
-    keypad_button(keyboard_frame, "SPACE", lambda: insert_text(" "), size=21).grid(
+    keypad_button(keyboard_frame, "SPACE", lambda: insert_text(" "), size=28).grid(
         row=3, column=0, columnspan=3, sticky="nsew", padx=3, pady=3
     )
 
-    keypad_button(keyboard_frame, "ENTER", lambda: insert_text("\n"), size=21).grid(
+    keypad_button(keyboard_frame, "ENTER", lambda: insert_text("\n"), size=28).grid(
         row=3, column=3, columnspan=2, sticky="nsew", padx=3, pady=3
     )
 
-    keypad_button(keyboard_frame, "⌫", delete_char, size=21).grid(
+    keypad_button(keyboard_frame, "⌫", delete_char, size=28).grid(
         row=3, column=5, columnspan=2, sticky="nsew", padx=3, pady=3
     )
 
-    keypad_button(keyboard_frame, ".", lambda: insert_text("."), size=21).grid(
+    keypad_button(keyboard_frame, ".", lambda: insert_text("."), size=28).grid(
         row=3, column=7, sticky="nsew", padx=3, pady=3
     )
 
-    keypad_button(keyboard_frame, "-", lambda: insert_text("-"), size=21).grid(
+    keypad_button(keyboard_frame, "-", lambda: insert_text("-"), size=28
+    ).grid(
         row=3, column=8, sticky="nsew", padx=3, pady=3
     )
 
-    keypad_button(keyboard_frame, ",", lambda: insert_text(","), size=21).grid(
+    keypad_button(keyboard_frame, ",", lambda: insert_text(","), size=28
+    ).grid(
         row=3, column=9, sticky="nsew", padx=3, pady=3
     )
 
@@ -1135,10 +1137,10 @@ def show_notes_screen():
         keyboard_frame.grid_columnconfigure(c, weight=1)
 
     frame.grid_rowconfigure(0, weight=1)
-    frame.grid_rowconfigure(1, weight=7)
+    frame.grid_rowconfigure(1, weight=4)
     frame.grid_rowconfigure(2, weight=1)
     frame.grid_rowconfigure(3, weight=2)
-    frame.grid_rowconfigure(4, weight=5)
+    frame.grid_rowconfigure(4, weight=8)
 
     for c in range(10):
         frame.grid_columnconfigure(c, weight=1)
