@@ -164,8 +164,8 @@ def play_timer_alarm():
     except Exception:
         try:
             subprocess.Popen([
-                "aplay",
-                "/usr/share/sounds/alsa/Front_Center.wav"
+                "paplay",
+                "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
             ])
         except Exception:
             try:
