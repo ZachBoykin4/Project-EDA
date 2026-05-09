@@ -159,7 +159,7 @@ def play_timer_alarm():
     try:
         global_timer["alarm_process"] = subprocess.Popen([
             "aplay",
-            "/home/zachboykin4/Downloads/adream.wav"
+            "/home/zachboykin4/Downloads/A Dream.wav"
         ])
     except Exception as error:
         print(f"Alarm sound failed: {error}")
@@ -182,8 +182,8 @@ def background_timer_tick():
 
         if not global_timer["alert_shown"]:
             global_timer["alert_shown"] = True
-            play_timer_alarm()
             show_timer_alert_screen()
+            play_timer_alarm()
 
     else:
         global_timer["job"] = None
@@ -495,7 +495,7 @@ def show_units_screen():
         category_buttons.clear()
 
         for i, cat in enumerate(cats):
-            btn = keypad_button(category_frame, cat, lambda c=cat: set_category(c), size=30)
+            btn = keypad_button(category_frame, cat, lambda c=cat: set_category(c), size=22)
             btn.grid(row=i // 2, column=i % 2, sticky="nsew", padx=5, pady=5)
             category_buttons[cat] = btn
 
@@ -997,13 +997,13 @@ def show_notes_screen():
     frame = ctk.CTkFrame(app, fg_color="transparent")
     frame.pack(fill="both", expand=True, padx=8, pady=8)
 
-    ctk.CTkLabel(frame, text="EDA Log Notes", font=("Arial", 30, "bold")).grid(
-        row=0, column=0, columnspan=10, sticky="nsew", pady=(0, 3)
+    ctk.CTkLabel(frame, text="EDA Log Notes", font=("Arial", 28, "bold")).grid(
+        row=0, column=0, columnspan=10, sticky="nsew", pady=(0, 2)
     )
 
     notes_box = tk.Text(
         frame,
-        font=("Arial", 24, "bold"),
+        font=("Arial", 21, "bold"),
         bg="#1F2937",
         fg="white",
         insertbackground="white",
@@ -1034,7 +1034,7 @@ def show_notes_screen():
     except FileNotFoundError:
         notes_box.insert("1.0", new_template())
 
-    status_label = ctk.CTkLabel(frame, text="", font=("Arial", 15, "bold"))
+    status_label = ctk.CTkLabel(frame, text="", font=("Arial", 13, "bold"))
     status_label.grid(row=2, column=0, columnspan=10, sticky="nsew")
 
     def insert_text(text):
@@ -1071,8 +1071,8 @@ def show_notes_screen():
     ]
 
     for i, (text, cmd) in enumerate(controls):
-        keypad_button(control_frame, text, cmd, size=20).grid(
-            row=0, column=i, sticky="nsew", padx=4, pady=4
+        keypad_button(control_frame, text, cmd, size=18).grid(
+            row=0, column=i, sticky="nsew", padx=4, pady=4, ipady=10
         )
         control_frame.grid_columnconfigure(i, weight=1)
 
@@ -1095,39 +1095,34 @@ def show_notes_screen():
                 keyboard_frame,
                 letter,
                 lambda l=letter: insert_text(l.lower()),
-                size=30
+                size=24
             ).grid(
                 row=r,
                 column=c + offset,
                 sticky="nsew",
-                padx=3,
-                pady=3
+                padx=4,
+                pady=4,
+                ipady=12
             )
 
-    keypad_button(keyboard_frame, "SPACE", lambda: insert_text(" "), size=28).grid(
-        row=3, column=0, columnspan=3, sticky="nsew", padx=3, pady=3
+    keypad_button(keyboard_frame, "SPACE", lambda: insert_text(" "), size=22).grid(
+        row=3, column=0, columnspan=4, sticky="nsew", padx=4, pady=4, ipady=14
     )
 
-    keypad_button(keyboard_frame, "ENTER", lambda: insert_text("\n"), size=28).grid(
-        row=3, column=3, columnspan=2, sticky="nsew", padx=3, pady=3
+    keypad_button(keyboard_frame, "ENTER", lambda: insert_text("\n"), size=22).grid(
+        row=3, column=4, columnspan=3, sticky="nsew", padx=4, pady=4, ipady=14
     )
 
-    keypad_button(keyboard_frame, "⌫", delete_char, size=28).grid(
-        row=3, column=5, columnspan=2, sticky="nsew", padx=3, pady=3
+    keypad_button(keyboard_frame, "⌫", delete_char, size=22).grid(
+        row=3, column=7, sticky="nsew", padx=4, pady=4, ipady=14
     )
 
-    keypad_button(keyboard_frame, ".", lambda: insert_text("."), size=28).grid(
-        row=3, column=7, sticky="nsew", padx=3, pady=3
+    keypad_button(keyboard_frame, ".", lambda: insert_text("."), size=22).grid(
+        row=3, column=8, sticky="nsew", padx=4, pady=4, ipady=14
     )
 
-    keypad_button(keyboard_frame, "-", lambda: insert_text("-"), size=28
-    ).grid(
-        row=3, column=8, sticky="nsew", padx=3, pady=3
-    )
-
-    keypad_button(keyboard_frame, ",", lambda: insert_text(","), size=28
-    ).grid(
-        row=3, column=9, sticky="nsew", padx=3, pady=3
+    keypad_button(keyboard_frame, ",", lambda: insert_text(","), size=22).grid(
+        row=3, column=9, sticky="nsew", padx=4, pady=4, ipady=14
     )
 
     for r in range(4):
@@ -1137,10 +1132,10 @@ def show_notes_screen():
         keyboard_frame.grid_columnconfigure(c, weight=1)
 
     frame.grid_rowconfigure(0, weight=1)
-    frame.grid_rowconfigure(1, weight=4)
+    frame.grid_rowconfigure(1, weight=6)
     frame.grid_rowconfigure(2, weight=1)
     frame.grid_rowconfigure(3, weight=2)
-    frame.grid_rowconfigure(4, weight=8)
+    frame.grid_rowconfigure(4, weight=6)
 
     for c in range(10):
         frame.grid_columnconfigure(c, weight=1)
