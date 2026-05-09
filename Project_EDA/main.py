@@ -165,7 +165,7 @@ def play_timer_alarm():
         try:
             subprocess.Popen([
                 "aplay",
-                "/usr/share/sounds/alsa/Noise.wav"
+                "/usr/share/sounds/alsa/dialog-warning.wav"
             ])
         except Exception:
             try:
