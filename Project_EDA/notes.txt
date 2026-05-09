@@ -2,21 +2,4 @@ Project EDA notes...
 DAY 1 Was a Success, still much to do
 
 
-[2026-05-08 07:39 PM] EDA LOG
-PROJECT UPDATE:
-- 
-
-TO-DO:jjjj
-- 
-
-IDEA:jjj
-- jjj
-
-BUG / ISSUE:
-- hj
-
-NOTES:
-- 
-----------------------------------------
-
 

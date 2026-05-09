@@ -31,7 +31,11 @@ def force_fullscreen():
 app.after(200, force_fullscreen)
 app.bind("<Escape>", lambda e: app.destroy())
 app.bind("<F11>", lambda e: force_fullscreen())
-
+global_timer = {
+    "running": False,
+    "seconds": 0,
+    "input": "",
+}
 saved_weather_locations = []
 active_screen = {"name": "clock"}
 is_dimmed = {"value": False}
@@ -736,12 +740,14 @@ def show_timer_screen():
     active_screen["name"] = "timer"
     clear_screen()
 
-    state = {"seconds": 0, "input": "", "running": False}
+    state = global_timer
 
     frame = ctk.CTkFrame(app, fg_color="transparent")
     frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-    ctk.CTkLabel(frame, text="Timer", font=("Arial", 36, "bold")).grid(row=0, column=0, columnspan=4, sticky="nsew")
+    ctk.CTkLabel(frame, text="Timer", font=("Arial", 36, "bold")).grid(
+        row=0, column=0, columnspan=4, sticky="nsew"
+    )
 
     timer_label = ctk.CTkLabel(frame, text="00:00", font=("Arial", 92, "bold"))
     timer_label.grid(row=1, column=0, columnspan=4, sticky="nsew")
@@ -757,6 +763,21 @@ def show_timer_screen():
             timer_label.configure(text=state["input"])
         else:
             timer_label.configure(text=format_time(state["seconds"]))
+
+    def refresh_timer_screen():
+        if active_screen["name"] != "timer":
+            return
+
+        update_timer_display()
+
+        if state["running"]:
+            status_label.configure(text="Running")
+        elif state["seconds"] == 0 and not state["input"]:
+            status_label.configure(text="Ready")
+        else:
+            status_label.configure(text="Paused / Ready")
+
+        app.after(300, refresh_timer_screen)
 
     def press_key(key):
         if state["running"]:
@@ -796,16 +817,12 @@ def show_timer_screen():
         return minutes * 60 + seconds
 
     def tick():
-        if active_screen["name"] != "timer":
-            return
-
         if state["running"] and state["seconds"] > 0:
             state["seconds"] -= 1
-            timer_label.configure(text=format_time(state["seconds"]))
             app.after(1000, tick)
+
         elif state["running"] and state["seconds"] == 0:
             state["running"] = False
-            status_label.configure(text="Timer complete")
 
     def start_timer():
         try:
@@ -856,14 +873,20 @@ def show_timer_screen():
         else:
             cmd = lambda k=text: press_key(k)
 
-        keypad_button(frame, text, cmd, size=24).grid(row=r, column=c, sticky="nsew", padx=5, pady=5)
+        keypad_button(frame, text, cmd, size=24).grid(
+            row=r, column=c, sticky="nsew", padx=5, pady=5
+        )
 
     for r in range(7):
         frame.grid_rowconfigure(r, weight=1)
+
     frame.grid_rowconfigure(1, weight=2)
 
     for c in range(4):
         frame.grid_columnconfigure(c, weight=1)
+
+    update_timer_display()
+    refresh_timer_screen()
 
 
 def show_notes_screen():
