@@ -152,26 +152,20 @@ def format_timer_time(total_seconds):
 
 
 def play_timer_alarm():
-
     if not global_timer["alert_shown"]:
         return
 
     try:
-        subprocess.Popen([
-            "afplay",
-            "/System/Library/Sounds/Glass.aiff"
+        global_timer["alarm_process"] = subprocess.Popen([
+            "aplay",
+            "/home/zachboykin4/Downloads/A Dream.wav"
         ])
-    except Exception:
+    except Exception as error:
+        print(f"Alarm sound failed: {error}")
         try:
-            subprocess.Popen([
-                "aplay",
-                "/home/zachboykin4/Downloads/adream.wav"
-            ])
+            app.bell()
         except Exception:
-            try:
-                app.bell()
-            except Exception:
-                pass
+            pass
 
     app.after(2500, play_timer_alarm)
 
@@ -820,12 +814,21 @@ def show_timer_alert_screen():
         text_color="white",
     )
     sub_label.pack(pady=10)
+def dismiss_alert():
+    global_timer["alert_shown"] = False
+    global_timer["seconds"] = 0
+    global_timer["input"] = ""
+    subprocess.Popen(["pkill", "-f", "aplay"])
+    if global_timer.get("alarm_process") is not None:
+        try:
+            global_timer["alarm_process"].terminate()
+        except Exception:
+            pass
+        global_timer["alarm_process"] = None
 
-    def dismiss_alert():
-        global_timer["seconds"] = 0
-        global_timer["input"] = ""
-        global_timer["alert_shown"] = False
-        show_main_screen()
+    show_main_screen()
+
+        
 
     full_button(frame, "Dismiss", dismiss_alert, 36).pack(fill="x", padx=40, pady=35)
 
