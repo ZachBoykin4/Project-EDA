@@ -159,7 +159,7 @@ def play_timer_alarm():
     try:
         global_timer["alarm_process"] = subprocess.Popen([
             "aplay",
-            "/home/zachboykin4/Downloads/A Dream.wav"
+            "/home/zachboykin4/Downloads/adream.wav"
         ])
     except Exception as error:
         print(f"Alarm sound failed: {error}")
