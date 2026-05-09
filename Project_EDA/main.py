@@ -4,6 +4,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import requests
 import threading
+import subprocess
 
 DEFAULT_WEATHER_CITY = "Auburn, AL"
 DIM_AFTER_MS = 5 * 60 * 1000
@@ -31,15 +32,19 @@ def force_fullscreen():
 app.after(200, force_fullscreen)
 app.bind("<Escape>", lambda e: app.destroy())
 app.bind("<F11>", lambda e: force_fullscreen())
-global_timer = {
-    "running": False,
-    "seconds": 0,
-    "input": "",
-}
+
 saved_weather_locations = []
 active_screen = {"name": "clock"}
 is_dimmed = {"value": False}
 dim_job = {"id": None}
+
+global_timer = {
+    "running": False,
+    "seconds": 0,
+    "input": "",
+    "job": None,
+    "alert_shown": False,
+}
 
 idle_weather_data = {
     "city": "AUBURN, ALABAMA",
@@ -140,6 +145,58 @@ def keypad_button(parent, text, command, size=26):
         corner_radius=16,
         border_width=0,
     )
+
+
+def format_timer_time(total_seconds):
+    return f"{total_seconds // 60:02d}:{total_seconds % 60:02d}"
+
+
+def play_timer_alarm():
+
+    if not global_timer["alert_shown"]:
+        return
+
+    try:
+        subprocess.Popen([
+            "afplay",
+            "/System/Library/Sounds/Glass.aiff"
+        ])
+    except Exception:
+        try:
+            subprocess.Popen([
+                "aplay",
+                "/usr/share/sounds/alsa/Front_Center.wav"
+            ])
+        except Exception:
+            try:
+                app.bell()
+            except Exception:
+                pass
+
+    app.after(2500, play_timer_alarm)
+
+
+def background_timer_tick():
+    if global_timer["running"] and global_timer["seconds"] > 0:
+        global_timer["seconds"] -= 1
+        global_timer["job"] = app.after(1000, background_timer_tick)
+
+    elif global_timer["running"] and global_timer["seconds"] == 0:
+        global_timer["running"] = False
+        global_timer["job"] = None
+
+        if not global_timer["alert_shown"]:
+            global_timer["alert_shown"] = True
+            play_timer_alarm()
+            show_timer_alert_screen()
+
+    else:
+        global_timer["job"] = None
+
+
+def start_background_timer():
+    if global_timer["job"] is None:
+        global_timer["job"] = app.after(1000, background_timer_tick)
 
 
 def get_coordinates(city_name):
@@ -353,10 +410,14 @@ def show_main_screen():
     ctk.CTkLabel(frame, text="EDA", font=("Arial", 42, "bold")).grid(row=0, column=0, columnspan=2, sticky="nsew", pady=(0, 4))
     ctk.CTkLabel(frame, text="Engineering Dashboard Assistant", font=("Arial", 18)).grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(0, 10))
 
+    timer_text = "Timer"
+    if global_timer["running"]:
+        timer_text = f"Timer ({format_timer_time(global_timer['seconds'])})"
+
     buttons = [
         ("Units", show_units_screen),
         ("Weather", show_weather_screen),
-        ("Timer", show_timer_screen),
+        (timer_text, show_timer_screen),
         ("Notes", show_notes_screen),
         ("Back to Clock", show_idle_screen),
         ("Exit App", app.destroy),
@@ -390,10 +451,10 @@ def show_units_screen():
 
     ctk.CTkLabel(frame, text="Unit Converter", font=("Arial", 34, "bold")).grid(row=0, column=0, columnspan=4, sticky="nsew")
 
-    display = ctk.CTkLabel(frame, text="0", font=("Arial", 42, "bold"), fg_color="#1F2937", corner_radius=18)
+    display = ctk.CTkLabel(frame, text="0", font=("Arial", 44, "bold"), fg_color="#1F2937", corner_radius=18)
     display.grid(row=1, column=0, columnspan=4, sticky="nsew", padx=6, pady=6)
 
-    result_label = ctk.CTkLabel(frame, text="Result will appear here", font=("Arial", 22, "bold"))
+    result_label = ctk.CTkLabel(frame, text="Result will appear here", font=("Arial", 24, "bold"))
     result_label.grid(row=2, column=0, columnspan=4, sticky="nsew", pady=4)
 
     selector_frame = ctk.CTkFrame(frame, fg_color="transparent")
@@ -439,8 +500,8 @@ def show_units_screen():
         category_buttons.clear()
 
         for i, cat in enumerate(cats):
-            btn = keypad_button(category_frame, cat, lambda c=cat: set_category(c), size=16)
-            btn.grid(row=i // 2, column=i % 2, sticky="nsew", padx=4, pady=4)
+            btn = keypad_button(category_frame, cat, lambda c=cat: set_category(c), size=22)
+            btn.grid(row=i // 2, column=i % 2, sticky="nsew", padx=5, pady=5)
             category_buttons[cat] = btn
 
         for r in range(4):
@@ -456,8 +517,8 @@ def show_units_screen():
         conversion_buttons.clear()
 
         for i, conv in enumerate(opts):
-            btn = keypad_button(conversion_frame, conv, lambda cv=conv: set_conversion(cv), size=16)
-            btn.grid(row=i, column=0, sticky="nsew", padx=4, pady=4)
+            btn = keypad_button(conversion_frame, conv, lambda cv=conv: set_conversion(cv), size=26)
+            btn.grid(row=i, column=0, sticky="nsew", padx=5, pady=5)
             conversion_buttons[conv] = btn
 
         for r in range(max(1, len(opts))):
@@ -509,16 +570,17 @@ def show_units_screen():
         else:
             cmd = lambda k=text: press_key(k)
 
-        keypad_button(keypad, text, cmd, size=22).grid(row=r, column=c, sticky="nsew", padx=4, pady=4)
+        keypad_button(keypad, text, cmd, size=24).grid(row=r, column=c, sticky="nsew", padx=4, pady=4)
 
     for r in range(4):
         keypad.grid_rowconfigure(r, weight=1)
     for c in range(4):
         keypad.grid_columnconfigure(c, weight=1)
 
-    for r in range(5):
-        frame.grid_rowconfigure(r, weight=1)
-    frame.grid_rowconfigure(3, weight=3)
+    frame.grid_rowconfigure(0, weight=1)
+    frame.grid_rowconfigure(1, weight=1)
+    frame.grid_rowconfigure(2, weight=1)
+    frame.grid_rowconfigure(3, weight=4)
     frame.grid_rowconfigure(4, weight=4)
 
     for c in range(4):
@@ -736,6 +798,50 @@ def show_weather_detail_screen(location):
     threading.Thread(target=worker, daemon=True).start()
 
 
+def show_timer_alert_screen():
+    active_screen["name"] = "timer_alert"
+    clear_screen()
+
+    frame = ctk.CTkFrame(app, fg_color="#050505")
+    frame.pack(fill="both", expand=True)
+
+    alert_label = ctk.CTkLabel(
+        frame,
+        text="TIMER COMPLETE",
+        font=("Arial", 72, "bold"),
+        text_color="#FF3333",
+    )
+    alert_label.pack(expand=True)
+
+    sub_label = ctk.CTkLabel(
+        frame,
+        text="Tap dismiss to return",
+        font=("Arial", 28, "bold"),
+        text_color="white",
+    )
+    sub_label.pack(pady=10)
+
+    def dismiss_alert():
+        global_timer["seconds"] = 0
+        global_timer["input"] = ""
+        global_timer["alert_shown"] = False
+        show_main_screen()
+
+    full_button(frame, "Dismiss", dismiss_alert, 36).pack(fill="x", padx=40, pady=35)
+
+    flashing = {"on": True}
+
+    def flash():
+        if active_screen["name"] != "timer_alert":
+            return
+
+        flashing["on"] = not flashing["on"]
+        alert_label.configure(text_color="#FF3333" if flashing["on"] else "#FFFFFF")
+        app.after(500, flash)
+
+    flash()
+
+
 def show_timer_screen():
     active_screen["name"] = "timer"
     clear_screen()
@@ -745,24 +851,19 @@ def show_timer_screen():
     frame = ctk.CTkFrame(app, fg_color="transparent")
     frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-    ctk.CTkLabel(frame, text="Timer", font=("Arial", 36, "bold")).grid(
-        row=0, column=0, columnspan=4, sticky="nsew"
-    )
+    ctk.CTkLabel(frame, text="Timer", font=("Arial", 36, "bold")).grid(row=0, column=0, columnspan=4, sticky="nsew")
 
-    timer_label = ctk.CTkLabel(frame, text="00:00", font=("Arial", 92, "bold"))
+    timer_label = ctk.CTkLabel(frame, text=format_timer_time(state["seconds"]), font=("Arial", 92, "bold"))
     timer_label.grid(row=1, column=0, columnspan=4, sticky="nsew")
 
-    status_label = ctk.CTkLabel(frame, text="Enter minutes using keypad", font=("Arial", 22, "bold"))
+    status_label = ctk.CTkLabel(frame, text="Running" if state["running"] else "Enter minutes using keypad", font=("Arial", 22, "bold"))
     status_label.grid(row=2, column=0, columnspan=4, sticky="nsew")
-
-    def format_time(total_seconds):
-        return f"{total_seconds // 60:02d}:{total_seconds % 60:02d}"
 
     def update_timer_display():
         if state["input"] and not state["running"]:
             timer_label.configure(text=state["input"])
         else:
-            timer_label.configure(text=format_time(state["seconds"]))
+            timer_label.configure(text=format_timer_time(state["seconds"]))
 
     def refresh_timer_screen():
         if active_screen["name"] != "timer":
@@ -816,14 +917,6 @@ def show_timer_screen():
 
         return minutes * 60 + seconds
 
-    def tick():
-        if state["running"] and state["seconds"] > 0:
-            state["seconds"] -= 1
-            app.after(1000, tick)
-
-        elif state["running"] and state["seconds"] == 0:
-            state["running"] = False
-
     def start_timer():
         try:
             if not state["running"]:
@@ -836,9 +929,10 @@ def show_timer_screen():
 
                 state["running"] = True
                 state["input"] = ""
+                state["alert_shown"] = False
                 status_label.configure(text="Running")
                 update_timer_display()
-                tick()
+                start_background_timer()
 
         except ValueError:
             status_label.configure(text="Invalid time")
@@ -851,6 +945,7 @@ def show_timer_screen():
         state["running"] = False
         state["seconds"] = 0
         state["input"] = ""
+        state["alert_shown"] = False
         status_label.configure(text="Ready")
         update_timer_display()
 
@@ -873,13 +968,10 @@ def show_timer_screen():
         else:
             cmd = lambda k=text: press_key(k)
 
-        keypad_button(frame, text, cmd, size=24).grid(
-            row=r, column=c, sticky="nsew", padx=5, pady=5
-        )
+        keypad_button(frame, text, cmd, size=24).grid(row=r, column=c, sticky="nsew", padx=5, pady=5)
 
     for r in range(7):
         frame.grid_rowconfigure(r, weight=1)
-
     frame.grid_rowconfigure(1, weight=2)
 
     for c in range(4):
